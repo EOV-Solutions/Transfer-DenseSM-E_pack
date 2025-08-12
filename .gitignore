@@ -2,7 +2,8 @@
 /100m_data/
 
 # Ignore 1km data 
-/1km_global_data/
+/1km_global_data/china/
+/1km_global_data/india/
 
 # Ignore trained model
 /Demo/
