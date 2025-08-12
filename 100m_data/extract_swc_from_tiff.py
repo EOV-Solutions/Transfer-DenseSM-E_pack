@@ -8,7 +8,8 @@ import geopandas as gpd
 from rasterio.transform import rowcol  
 from datetime import datetime, timedelta
 
-def process_region(region='china'):
+# region = 'china'  # or 'india'
+def process_region(region):
     # Get locations of each point
     shapefile_path = f'{region}/{region}_points/{region}_points.shp'
     gdf = gpd.read_file(shapefile_path)
@@ -66,15 +67,18 @@ def process_region(region='china'):
                 longitude = row['longitude']
                 station_id = row['id']
 
-                # Convert latitude and longitude to row and column indices
+                # Convert latitude and longitude to row and column indices to get pixel values = 0.5 * sm
+                # The first band is the quality flag (0 = good)
+                # The second band is the soil moisture value. 
+                # No need to check the third band.
                 try:
                     row_index, col_index = rowcol(transform, longitude, latitude)
                     quality_flag = src.read(1)[row_index, col_index]
-                    if quality_flag != 0:
+                    if quality_flag != 0: # 0 = good quality
                         pixel_value = np.nan
                         continue
                     pixel_value = src.read(2)[row_index, col_index] 
-                    sm_25 = round(pixel_value * 2, 5) 
+                    sm_25 = round(pixel_value * 2, 5) # sm = 2*pixel_value (band 2)
                 except IndexError:
                     pixel_value = np.nan 
                 
@@ -100,10 +104,9 @@ def process_region(region='china'):
     
     # Create individual CSV files for each station
     create_data_csv_files(results_df, region)
-    
-    # Split site info into two files
-    split_site_info(region)
 
+# Create site info file for all points: network, station (id), latitude, longitude, start depth, end depth)
+# site info file will be used for downloading data in data_pre/Prepare_samples.ipynb
 def create_site_info(df, region, network):
     # Select unique locations 
     site_df = df[['id', 'latitude', 'longitude']].drop_duplicates().sort_values(by='id')
@@ -113,7 +116,8 @@ def create_site_info(df, region, network):
     site_df['station'] = site_df['id']
     site_df['s_depth'] = 0 
     site_df['e_depth'] = 5
-
+    
+    # Reorder and rename columns for consistency
     site_df = site_df[['network', 'station', 'latitude', 'longitude', 's_depth', 'e_depth']].rename(
         columns={'latitude': 'lat', 'longitude': 'lon'})
     
@@ -121,12 +125,14 @@ def create_site_info(df, region, network):
     site_df.to_csv(output_csv, index=False)
     print(f'Site info saved to {output_csv}')
 
+# Create individual CSV files for each station with soil moisture data
+# These file will be used for downloading data in data_pre/Prepare_samples.ipynb
 def create_data_csv_files(df, region):
     df['time'] = pd.to_datetime(df['date'])
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']
     
-    output_folder = f'{region}/{region}_cvs'
+    output_folder = f'{region}/{region}_csv'
     os.makedirs(output_folder, exist_ok=True)
 
     for station, station_df in df.groupby('station'):
@@ -134,18 +140,6 @@ def create_data_csv_files(df, region):
         station_df['sm_count'] = 1
         station_df.to_csv(station_file, index=False)
         print(f"Saved: {station_file}")
-
-def split_site_info(region):
-    china_sites = pd.read_csv(f'{region}/{region}_site_info.csv')
-    n = len(china_sites)
-    half = n // 2 
-    
-    china_site_1 = china_sites.iloc[:half].reset_index(drop=True)
-    china_site_2 = china_sites.iloc[half:].reset_index(drop=True)
-    
-    china_site_1.to_csv(f'{region}/{region}_site_info_1.csv', index=False)
-    china_site_2.to_csv(f'{region}/{region}_site_info_2.csv', index=False)
-    print(f"Split site info into two files: {region}_site_info_1.csv and {region}_site_info_2.csv")
 
 if __name__ == "__main__":
     process_region('china')

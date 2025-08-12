@@ -1,3 +1,10 @@
+# Ignore 1km vietnam data
+/1km_vn_data/csv
+/1km_vn_data/grid
+/1km_vn_data/points_s1_dates_csv
+/1km_vn_data/s1_dates_per_grid
+/1km_vn_data/vn_points
+
 # Ignore 100m data 
 /100m_data/china/
 /100m_data/india/
