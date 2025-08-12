@@ -2,7 +2,6 @@
 /100m_data/china/
 /100m_data/india/
 /100m_data/vietnam/
-/100m_data/fusion/
 /100m_data/input_tb/
 /100m_data/output_tb/
 /100m_data/vn_shp/
@@ -16,3 +15,5 @@
 
 # Ignore roi inference 
 /roi_inference/regions_data_results/
+
+/fusion/
