@@ -68,10 +68,6 @@ if __name__ == "__main__":
 
     # Load input data
     input_data = pd.read_csv(input_csv)
-    # for col in ['12', '13', '14']:
-    #     noise = np.random.normal(loc = 0.0, scale = 0.02, size = len(input_data))
-    #     input_data[col] = np.clip(input_data[col] + noise, 0, 1)
-    # locations = input_data['location']  # Extract the 'location' column
     input_data = np.asarray(input_data.loc[:, '0':'152']).astype(np.float32)
     input_data = input_reorganize(input_data)
     print('input_data.shape:', input_data.shape)
