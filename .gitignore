@@ -1,0 +1,11 @@
+# Ignore 100m data 
+/100m_data/
+
+# Ignore 1km data 
+/1km_global_data/
+
+# Ignore trained model
+/Demo/
+
+# Ignore roi inference 
+/roi_inference/regions_data_results/
