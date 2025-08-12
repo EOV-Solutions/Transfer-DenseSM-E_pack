@@ -1,3 +1,7 @@
+"""Trong file get_s1_dates.ipynb, chúng ta đã thu thập các ngày có dữ liệu S1 trong từng ô của grid.
+Code này sẽ tìm các điểm thuộc từng ô và gán ngày S1 đã tìm được cho các điểm đó.
+Đầu ra sẽ là các file csv chứa các ngày S1 tương ứng với từng điểm. points_s1_dates_csv."""
+
 import geopandas as gpd
 import pandas as pd
 import json
@@ -5,10 +9,10 @@ from shapely.geometry import Point
 from pathlib import Path
 
 # Đường dẫn
-points_csv = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/csv/sample.csv'
-grid_file = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/grid/grid_40km_with_points_1.gpkg'
-json_folder = Path('/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/2020/s1_dates_per_grid')  # thư mục chứa grid_{grid_id}.json
-output_folder = Path('/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/2020/points_s1_dates_csv')
+points_csv = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/csv/sample.csv'
+grid_file = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/grid/grid_40km_with_points_1.gpkg'
+json_folder = Path('/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/2020/s1_dates_per_grid')  # thư mục chứa grid_{grid_id}.json
+output_folder = Path('/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/2020/points_s1_dates_csv')
 output_folder.mkdir(exist_ok=True)
 
 # Load dữ liệu điểm
@@ -36,7 +40,7 @@ for idx, grid_row in grid_gdf.iterrows():
     if points_in_grid.empty:
         continue
 
-    # Mở file JSON tương ứng
+    # Mở file JSON tương ứng ô đấy
     json_path = json_folder / f's1_dates_{grid_id}.json'
     if not json_path.exists():
         print(f'Not found json file for {grid_id}')
@@ -45,16 +49,17 @@ for idx, grid_row in grid_gdf.iterrows():
     with open(json_path, 'r') as f:
         s1_dates = json.load(f)
 
-    # Gộp ASC/DESC thành DataFrame
+    # Gộp ngày của cả 2 loại ASC/DESC thành DataFrame
     asc_dates = pd.DataFrame({'s1_date': s1_dates.get('ascending', []), 'orbit_pass': 'ASC'})
     desc_dates = pd.DataFrame({'s1_date': s1_dates.get('descending', []), 'orbit_pass': 'DESC'})
     all_dates = pd.concat([asc_dates, desc_dates], ignore_index=True).sort_values('s1_date')
 
+    # Duyệt qua tất cả các điểm trong ô lưới, và gán ngày S1 của ô cho các tất cả các điểm đấy. 
     # Create csv file for each point
     for _, point_row in points_in_grid.iterrows():
         point_id = point_row['id']
         output_path = output_folder / f'{point_id}.csv'
         all_dates.to_csv(output_path, index=False)
 
-with open('1km_data/grid/grid_points.json', 'w') as f:
+with open('1km_vn_data/grid/grid_points.json', 'w') as f:
     json.dump(grid_points, f, ensure_ascii = False, indent = 2)

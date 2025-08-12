@@ -1,4 +1,6 @@
-
+"""
+Trích xuất giá trị độ ẩm đất từ ảnh NSIDC 1km  
+"""
 import rasterio 
 import numpy as np
 import pandas as pd
@@ -11,15 +13,24 @@ from rasterio.transform import rowcol
 from datetime import datetime, timedelta
 
 tiff_folder = '/mnt/data2tb/nsidc_images'
-root_path = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_data'
+root_path = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data'
 
 def process_region(region='crop_wood'):
+    """ Here, region is the type of land cover, which we want to extract soil moisture data for in VietNam.
+        The function will read the shapefile of points (where we will get soil moisture), 
+        extract soil moisture data from NSIDC tiff images based on the points,
+        and save the results to a CSV file.
+    """
+
+    # Read shapefile to get points where we want to extract soil moisture data
     shapefile_path = f'{root_path}/vn_points/{region}_points/{region}_points.shp'
     gdf = gpd.read_file(shapefile_path)
 
+    # Get latitude and longitude of the points
     gdf['latitude'] = gdf.geometry.y
     gdf['longitude'] = gdf.geometry.x
 
+    # File save coordinates of points
     csv_file_path = f'{root_path}/vn_points/{region}_points/{region}_points.csv'
     df = gdf.drop(columns='geometry').rename(columns={'field_1': 'id'})
     df.to_csv(csv_file_path, index=False)
@@ -32,38 +43,46 @@ def process_region(region='crop_wood'):
     coords = list(zip(station_df['longitude'], station_df['latitude']))
     results = []
 
-
+    # Loop through each image in the tiff folder (NSIDC source), get soil moisture values at the points
     for image in os.listdir(tiff_folder):
         if not image.endswith('.tif'):
             continue
-
+        
+        # Extract date from the image filename
         match = re.search(r'(\d{8})', image)
         date = match.group(1) if match else None
         if date is None:
             continue
         date = datetime.strptime(date, '%Y%m%d')
 
+        # Open the tiff image and extract soil moisture values
         tiff_path = os.path.join(tiff_folder, image)
         with rasterio.open(tiff_path) as src:
             print(f"Processing image: {image}")
             print("Raster CRS:", src.crs)
             raster_crs = src.crs
 
-            # Transform (lon, lat) to raster CRS
+            # Because tiff file is in EPSG:6933, we need to transform the coordinates of points to the raster CRS
             transformer = Transformer.from_crs("EPSG:4326", raster_crs, always_xy=True)
             coords_lonlat = list(zip(station_df['longitude'], station_df['latitude']))
+            # Transform points' coordinates to raster CRS
             coords_raster = [transformer.transform(lon, lat) for lon, lat in coords_lonlat]
 
-            # Sample values at transformed coordinates
+            # Get values (soil moisture) at transformed coordinates
+            # This will return a list of values for each point, each point has two values (am and pm soil moisture)
             values = list(src.sample(coords_raster))
 
+            # Loop through each point and get the average soil moisture values = 0.5 * (am + pm)
             for i, val in enumerate(values):
+                # There are not enough 2 soil moisture values (am and pm) in a point, set sm_25 to NaN
                 if val is None or len(val) < 2 or np.ma.is_masked(val[0]) or np.ma.is_masked(val[1]):
                     sm_25 = np.nan
+                # If there are 2 values, calculate the average for a day
                 else:
                     sm_25 = 0.5*(val[0] + val[1])
 
                 row = station_df.iloc[i]
+                # Save soil moisture value and other information
                 results.append({
                     'id': int(row['id']),
                     'date': date,
@@ -92,7 +111,9 @@ def process_region(region='crop_wood'):
     
 
 def create_site_info(df, region, network):
-    # Select unique locations 
+    """ Create a CSV file containing site information (id, latitude, longitude) for each point in the region.\
+        The site information will be used for data retrieving in file data_pre/Prepare_samples.ipynb."""
+    # Drop duplicate points  
     site_df = df[['id', 'latitude', 'longitude']].drop_duplicates().sort_values(by='id')
 
     # Add 'Network' and 'station' columns 
@@ -109,6 +130,12 @@ def create_site_info(df, region, network):
     print(f'Site info saved to {output_csv}')
 
 def create_data_csv_files(df, region):
+    """ for each point (station) we create a CSV file containing:
+      + soil moisture
+      + coordinates
+      + date
+      ....
+    """
     df['time'] = pd.to_datetime(df['date'])
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']
@@ -116,6 +143,7 @@ def create_data_csv_files(df, region):
     output_folder = f'{root_path}/vn_points/{region}_cvs'
     os.makedirs(output_folder, exist_ok=True)
 
+    # For each station (point)), create a CSV file containing soil moisture data
     for station, station_df in df.groupby('station'):
         station_file = os.path.join(output_folder, f'{int(station)}.csv')
         station_df['sm_count'] = 1

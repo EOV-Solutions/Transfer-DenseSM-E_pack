@@ -1,12 +1,17 @@
+"""Sau khi trích xuất độ ẩm đất từ các ảnh tiff và các ngày có dữ liệu Sentinel-1, 
+ta cần lọc các giá trị độ ẩm đất, và chỉ giữ lại cac giá trị trùng ngày có dữ liệu Sentinel-1,
+hoặc có sau 1 ngày so với ngày có dữ liệu Sentinel-1."""
+
 import pandas as pd 
 import os 
 import glob
 
-csv_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/vn_points/crop_wood_cvs'
-s1_date_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/2020/points_s1_dates_csv'
-output_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/vn_points/crop_wood_cvs_filtered'
+csv_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/vn_points/crop_wood_cvs'
+s1_date_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/2020/points_s1_dates_csv'
+output_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/vn_points/crop_wood_cvs_filtered'
 
 os.makedirs(output_folder, exist_ok=True)
+# Function to filter SWC data based on Sentinel-1 dates
 def filter_swc():
     for filename in os.listdir(csv_folder):
         if filename.endswith('.csv'):
@@ -52,18 +57,18 @@ def filter_swc():
             filtered_swc_df.to_csv(output_path, index = False)
 
 
-def merge_filtered_swc():
-    df_list = []
-    filtered_csv_path = glob.glob(os.path.join(output_folder, '*.csv'))
-    for path in filtered_csv_path:
-        filtered_swc = pd.read_csv(path)
-        filtered_swc = filtered_swc.dropna()
-        df_list.append(filtered_swc)
+# def merge_filtered_swc():
+#     df_list = []
+#     filtered_csv_path = glob.glob(os.path.join(output_folder, '*.csv'))
+#     for path in filtered_csv_path:
+#         filtered_swc = pd.read_csv(path)
+#         filtered_swc = filtered_swc.dropna()
+#         df_list.append(filtered_swc)
 
-    merged_filtered_swc = pd.concat(df_list, ignore_index= True)
+#     merged_filtered_swc = pd.concat(df_list, ignore_index= True)
 
-    merged_filtered_swc = merged_filtered_swc.drop_duplicates(subset=['sm'])
-    merged_filtered_swc.to_csv('/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/vn_points/merged.csv')
+#     merged_filtered_swc = merged_filtered_swc.drop_duplicates(subset=['sm'])
+#     merged_filtered_swc.to_csv('/mnt/data2tb/Transfer-DenseSM-E_pack/1km_vn_data/vn_points/merged.csv')
 
 def create_site_info_file():
     network = 'VN'
@@ -93,11 +98,12 @@ def create_site_info_file():
 
     # Convert to DataFrame 
     station_df = pd.DataFrame(station_list)
-    station_df.to_csv('/mnt/data2tb/Transfer-DenseSM-E_2/1km_data/vn_points/crop_wood_site_info.csv', index=False)
+    station_df.to_csv('/mnt/data2tb/Transfer-DenseSM-E_pack/1km_vn_data/vn_points/crop_wood_site_info.csv', index=False)
 
 
 def main():
     filter_swc()
+    # After filtering, if there are points with no soil moisture data, we should create a site info file again
     # create_site_info_file()
 
 if __name__ == "__main__":

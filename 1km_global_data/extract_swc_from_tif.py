@@ -66,7 +66,6 @@ def process_region(region='tree_grass_crops'):
             raster_crs = src.crs
 
             # Because tiff file is in EPSG:6933, we need to transform the coordinates of points to the raster CRS
-            # Transform (lon, lat) to raster CRS
             transformer = Transformer.from_crs("EPSG:4326", raster_crs, always_xy=True)
             coords_lonlat = list(zip(station_df['longitude'], station_df['latitude']))
             # Transform points' coordinates to raster CRS
