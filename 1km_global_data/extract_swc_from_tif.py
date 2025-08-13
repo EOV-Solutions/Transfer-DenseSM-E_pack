@@ -15,7 +15,7 @@ network = 'INDIA_1km'
 country = 'india'  # or 'china'
 # The folder containing the tiff files of NSIDC soil moisture data 1km resolution
 tiff_folder = '/mnt/data2tb/nsidc_images'
-root_path = f'/mnt/data2tb/Transfer-DenseSM-E_2/1km_global_data/{country}'
+root_path = f'/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global/{country}'
 
 
 def process_region(region='tree_grass_crops'):

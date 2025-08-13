@@ -9,10 +9,11 @@ from shapely.geometry import Point
 from pathlib import Path
 
 # Đường dẫn
-points_csv = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/csv/sample.csv'
-grid_file = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/grid/grid_40km_with_points_1.gpkg'
-json_folder = Path('/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/2020/s1_dates_per_grid')  # thư mục chứa grid_{grid_id}.json
-output_folder = Path('/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/2020/points_s1_dates_csv')
+root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
+points_csv = f'{root_path}/csv/sample.csv'
+grid_file = f'{root_path}/grid/grid_40km_with_points_1.gpkg'
+json_folder = Path(f'{root_path}/s1_dates_per_grid')  # thư mục chứa grid_{grid_id}.json
+output_folder = Path(f'{root_path}/points_s1_dates_csv')
 output_folder.mkdir(exist_ok=True)
 
 # Load dữ liệu điểm
@@ -61,5 +62,5 @@ for idx, grid_row in grid_gdf.iterrows():
         output_path = output_folder / f'{point_id}.csv'
         all_dates.to_csv(output_path, index=False)
 
-with open('1km_vn_data/grid/grid_points.json', 'w') as f:
+with open(f'{root_path}/grid/grid_points.json', 'w') as f:
     json.dump(grid_points, f, ensure_ascii = False, indent = 2)

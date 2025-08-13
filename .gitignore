@@ -5,22 +5,10 @@
 /1km_vn_data/s1_dates_per_grid
 /1km_vn_data/vn_points
 
-# Ignore 100m data 
-/100m_data/china/
-/100m_data/india/
-/100m_data/vietnam/
-/100m_data/input_tb/
-/100m_data/output_tb/
-/100m_data/vn_shp/
-
-# Ignore 1km data 
-/1km_global_data/china/
-/1km_global_data/india/
-
 # Ignore trained model
 /Demo/
 
 # Ignore roi inference 
 /roi_inference/regions_data_results/
 
-/fusion/
+/training_data

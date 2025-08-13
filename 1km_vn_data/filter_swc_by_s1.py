@@ -6,9 +6,10 @@ import pandas as pd
 import os 
 import glob
 
-csv_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/vn_points/crop_wood_cvs'
-s1_date_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/2020/points_s1_dates_csv'
-output_folder = '/mnt/data2tb/Transfer-DenseSM-E_2/1km_vn_data/vn_points/crop_wood_cvs_filtered'
+root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
+csv_folder = f'{root_path}/vn_points/crop_wood_cvs'
+s1_date_folder = f'{root_path}/points_s1_dates_csv'
+output_folder = f'{root_path}/vn_points/crop_wood_cvs_filtered'
 
 os.makedirs(output_folder, exist_ok=True)
 # Function to filter SWC data based on Sentinel-1 dates
@@ -98,7 +99,7 @@ def create_site_info_file():
 
     # Convert to DataFrame 
     station_df = pd.DataFrame(station_list)
-    station_df.to_csv('/mnt/data2tb/Transfer-DenseSM-E_pack/1km_vn_data/vn_points/crop_wood_site_info.csv', index=False)
+    station_df.to_csv(f'{root_path}/vn_points/crop_wood_site_info.csv', index=False)
 
 
 def main():

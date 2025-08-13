@@ -9,10 +9,10 @@ import glob
 
 REGION = 'india' # or 'china'
 network = 'INDIA_1km' # or 'CHINA_1km'
-
-csv_folder = f'/mnt/data2tb/Transfer-DenseSM-E_2/1km_global_data/{REGION}/tree_grass_crops_csv'
-output_folder = f'/mnt/data2tb/Transfer-DenseSM-E_2/1km_global_data/{REGION}/tree_grass_crops_csv_filtered'
-s1_date_path = f'/mnt/data2tb/Transfer-DenseSM-E_2/1km_global_data/{REGION}/{REGION}_s1_metadata.csv'
+root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global"
+csv_folder = f'{root_path}/{REGION}/tree_grass_crops_csv'
+output_folder = f'{root_path}/{REGION}/tree_grass_crops_csv_filtered'
+s1_date_path = f'{root_path}/{REGION}/{REGION}_s1_metadata.csv'
 
 os.makedirs(output_folder, exist_ok=True)
 def filter_swc():
@@ -68,7 +68,7 @@ def filter_swc():
 #     merged_filtered_swc = pd.concat(df_list, ignore_index= True)
 
 #     merged_filtered_swc = merged_filtered_swc.drop_duplicates(subset=['sm'])
-#     merged_filtered_swc.to_csv(f'/mnt/data2tb/Transfer-DenseSM-E_2/1km_global_data/{REGION}/points/merged.csv')
+#     merged_filtered_swc.to_csv(f'{root_path}/{REGION}/points/merged.csv')
 
 def create_site_info_file():
     s_depth = 0
@@ -97,7 +97,7 @@ def create_site_info_file():
 
     # Convert to DataFrame 
     station_df = pd.DataFrame(station_list)
-    station_df.to_csv(f'/mnt/data2tb/Transfer-DenseSM-E_2/1km_global_data/{REGION}/points/tree_grass_crops_site_info.csv', index=False)
+    station_df.to_csv(f'{root_path}/{REGION}/points/tree_grass_crops_site_info.csv', index=False)
 
 
 def main():

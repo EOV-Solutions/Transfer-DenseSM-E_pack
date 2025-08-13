@@ -8,10 +8,12 @@ import geopandas as gpd
 from rasterio.transform import rowcol  
 from datetime import datetime, timedelta
 
+root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/100m"
+
 # region = 'china'  # or 'india'
 def process_region(region):
     # Get locations of each point
-    shapefile_path = f'{region}/{region}_points/{region}_points.shp'
+    shapefile_path = f'{root_path}/{region}/{region}_points/{region}_points.shp'
     gdf = gpd.read_file(shapefile_path)
     
     print("Sample point locations:")
@@ -22,14 +24,14 @@ def process_region(region):
     
     # Convert the GeoDataFrame to a DataFrame
     df = pd.DataFrame(gdf.drop(columns='geometry'))
-    csv_file_path = f'{region}/{region}_points/{region}_points.csv'
+    csv_file_path = f'{root_path}/{region}/{region}_points/{region}_points.csv'
     df = df.rename(columns={'field_1': 'id'})
     df.to_csv(csv_file_path, index=False)
     
     # Get pixels' values of points
-    tiff_folder = f'{region}/{region}_tif'
-    csv_file = f'{region}/{region}_points/{region}_points.csv'
-    s1_date_csv = f'{region}/{region}_s1_metadata.csv'
+    tiff_folder = f'{root_path}/{region}/{region}_tif'
+    csv_file = f'{root_path}/{region}/{region}_points/{region}_points.csv'
+    s1_date_csv = f'{root_path}/{region}/{region}_s1_metadata.csv'
     
     station_df = pd.read_csv(csv_file)
     s1_date = pd.read_csv(s1_date_csv)
@@ -94,7 +96,7 @@ def process_region(region):
     # Convert results to DataFrame 
     results_df = pd.DataFrame(results)
     # Save results to CSV
-    output_csv_path = f'{region}/{region}_swc_values.csv'
+    output_csv_path = f'{root_path}/{region}/{region}_swc_values.csv'
     results_df.to_csv(output_csv_path, index=False)
     print(f"Saved soil water content values to {output_csv_path}")
     
@@ -121,7 +123,7 @@ def create_site_info(df, region, network):
     site_df = site_df[['network', 'station', 'latitude', 'longitude', 's_depth', 'e_depth']].rename(
         columns={'latitude': 'lat', 'longitude': 'lon'})
     
-    output_csv = f'{region}/{region}_site_info.csv'
+    output_csv = f'{root_path}/{region}/{region}_site_info.csv'
     site_df.to_csv(output_csv, index=False)
     print(f'Site info saved to {output_csv}')
 
@@ -132,7 +134,7 @@ def create_data_csv_files(df, region):
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']
     
-    output_folder = f'{region}/{region}_csv'
+    output_folder = f'{root_path}/{region}/{region}_csv'
     os.makedirs(output_folder, exist_ok=True)
 
     for station, station_df in df.groupby('station'):
