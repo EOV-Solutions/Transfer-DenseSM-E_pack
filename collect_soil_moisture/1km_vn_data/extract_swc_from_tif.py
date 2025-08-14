@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 tiff_folder = '/mnt/data2tb/nsidc_images'
 root_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn'
 
-def process_region(region='crop_wood'):
+def create_files_for_region(region='crop_wood'):
     """ Here, region is the type of land cover, which we want to extract soil moisture data for in VietNam.
         The function will read the shapefile of points (where we will get soil moisture), 
         extract soil moisture data from NSIDC tiff images based on the points,
@@ -130,7 +130,8 @@ def create_site_info(df, region, network):
     print(f'Site info saved to {output_csv}')
 
 def create_data_csv_files(df, region):
-    """ for each point (station) we create a CSV file containing:
+    """ 
+    For each point (station) we create a CSV file containing:
       + soil moisture
       + coordinates
       + date
@@ -155,4 +156,4 @@ def create_data_csv_files(df, region):
         print(f"Saved: {station_file}")
 
 if __name__ == "__main__":
-    process_region()
+    create_files_for_region()
