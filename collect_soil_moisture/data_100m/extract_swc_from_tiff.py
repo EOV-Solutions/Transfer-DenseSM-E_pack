@@ -8,34 +8,14 @@ import geopandas as gpd
 from rasterio.transform import rowcol  
 from datetime import datetime, timedelta
 
-root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/100m"
-
 # region = 'china'  # or 'india'
-def process_region(region):
-    # Get locations of each point
-    shapefile_path = f'{root_path}/{region}/{region}_points/{region}_points.shp'
-    gdf = gpd.read_file(shapefile_path)
+def extract_data_for_region(region, station_df_path, root_path, tiff_folder, s1_date_csv, site_info_path, output_folder):
+    """Get pixels' values and information of points as save them as CSV files 
+    In this code, a point is called a station"""
     
-    print("Sample point locations:")
-    print(gdf.head())
-    
-    gdf['latitude'] = gdf.geometry.y
-    gdf['longitude'] = gdf.geometry.x
-    
-    # Convert the GeoDataFrame to a DataFrame
-    df = pd.DataFrame(gdf.drop(columns='geometry'))
-    csv_file_path = f'{root_path}/{region}/{region}_points/{region}_points.csv'
-    df = df.rename(columns={'field_1': 'id'})
-    df.to_csv(csv_file_path, index=False)
-    
-    # Get pixels' values of points
-    tiff_folder = f'{root_path}/{region}/{region}_tif'
-    csv_file = f'{root_path}/{region}/{region}_points/{region}_points.csv'
-    s1_date_csv = f'{root_path}/{region}/{region}_s1_metadata.csv'
-    
-    station_df = pd.read_csv(csv_file)
+    network = region.upper()
     s1_date = pd.read_csv(s1_date_csv)
-    
+    station_df = pd.read_csv(station_df_path)
     if not {'id', 'latitude', 'longitude'}.issubset(station_df.columns):
         raise ValueError("CSV file must contain 'id', 'latitude', and 'longitude' columns.")
     
@@ -100,16 +80,14 @@ def process_region(region):
     results_df.to_csv(output_csv_path, index=False)
     print(f"Saved soil water content values to {output_csv_path}")
     
-    # Get information of each site (value, location)
-    network = 'CHINA'
-    create_site_info(results_df, region, network)
+    create_site_info(results_df, network, site_info_path)
     
     # Create individual CSV files for each station
-    create_data_csv_files(results_df, region)
+    create_data_csv_files(results_df, output_folder)
 
 # Create site info file for all points: network, station (id), latitude, longitude, start depth, end depth)
 # site info file will be used for downloading data in data_pre/Prepare_samples.ipynb
-def create_site_info(df, region, network):
+def create_site_info(df, network, output_csv):
     # Select unique locations 
     site_df = df[['id', 'latitude', 'longitude']].drop_duplicates().sort_values(by='id')
 
@@ -123,25 +101,18 @@ def create_site_info(df, region, network):
     site_df = site_df[['network', 'station', 'latitude', 'longitude', 's_depth', 'e_depth']].rename(
         columns={'latitude': 'lat', 'longitude': 'lon'})
     
-    output_csv = f'{root_path}/{region}/{region}_site_info.csv'
     site_df.to_csv(output_csv, index=False)
     print(f'Site info saved to {output_csv}')
 
 # Create individual CSV files for each station with soil moisture data
 # These file will be used for downloading data in data_pre/Prepare_samples.ipynb
-def create_data_csv_files(df, region):
+def create_data_csv_files(df, output_folder):
     df['time'] = pd.to_datetime(df['date'])
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']
-    
-    output_folder = f'{root_path}/{region}/{region}_csv'
-    os.makedirs(output_folder, exist_ok=True)
 
     for station, station_df in df.groupby('station'):
         station_file = os.path.join(output_folder, f'{int(station)}.csv')
         station_df['sm_count'] = 1
         station_df.to_csv(station_file, index=False)
         print(f"Saved: {station_file}")
-
-if __name__ == "__main__":
-    process_region('china')

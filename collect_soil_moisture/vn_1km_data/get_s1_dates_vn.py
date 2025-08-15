@@ -25,14 +25,13 @@ import pandas as pd
 from shapely.geometry import Point
 from pathlib import Path
 
-
 # Path to the data directory
-root_path =  "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
+# root_path =  "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
 # Authenticate and initialize Earth Engine
 ee.Initialize()
 
 
-def create_40k_grid_from_10k():
+def create_40k_grid_from_10k(root_path):
     """
     Create a 40k grid from a 10k grid by grouping 2x2 blocks of 10k cells.
     Then filter the grid to keep only those containing points from a training_data/1km_vn/sample.csv file.
@@ -86,7 +85,7 @@ def create_40k_grid_from_10k():
 
 
     
-def get_grid_s1_dates_vn(start_date, end_date):
+def get_grid_s1_dates_vn(root_path, grid_path, start_date, end_date):
     """
     Get Sentinel-1 dates for each grid cell in the 40k grid from the defined time range.
     The results will be saved in JSON files in the training_data/1km_vn/s1_dates_per_grid directory.
@@ -97,8 +96,6 @@ def get_grid_s1_dates_vn(start_date, end_date):
     OUTPUT:     
     - s1_dates_per_grid: Directory containing JSON files with Sentinel-1 dates for each filtered 40k grid cell.
     """
-    # Ensure the 40k grid is created
-    create_40k_grid_from_10k()
 
     # Get Sentinel-1 dates for each grid cell from 2021 to 2022
     # start_date = "2021-01-01"
@@ -170,7 +167,7 @@ def get_grid_s1_dates_vn(start_date, end_date):
 
 """Chúng ta đã thu thập các ngày có dữ liệu S1 trong từng ô của grid. Bước tiếp theo sẽ tìm các điểm thuộc từng ô và gán ngày S1 đã tìm được cho các điểm đó.
 Đầu ra sẽ là các file csv chứa các ngày S1 tương ứng với từng điểm, lưu trong thư mục training_data/1km_vn/points_s1_dates_csv."""
-def get_point_s1_dates_vn():
+def get_point_s1_dates_vn(root_path):
     """
     Assign Sentinel-1 dates to each point in the 40k grid based on the grid cells they belong to.
     The results will be saved in CSV files in the training_data/1km_vn/points_s1_dates_csv directory.
