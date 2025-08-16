@@ -11,31 +11,20 @@ from pyproj import Transformer
 import geopandas as gpd
 from rasterio.transform import rowcol  
 from datetime import datetime, timedelta
+import pyproj 
 
-tiff_folder = '/mnt/data2tb/nsidc_images'
-root_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn'
 
-def create_files_for_region(region='crop_wood'):
+def create_files_for_region(points_csv_path, site_info_path, sm_csv_folder, tiff_folder = '/mnt/data2tb/nsidc_images', network = 'VN'):
     """ Here, region is the type of land cover, which we want to extract soil moisture data for in VietNam.
         The function will read the shapefile of points (where we will get soil moisture), 
         extract soil moisture data from NSIDC tiff images based on the points,
         and save the results to a CSV file.
     """
-
-    # Read shapefile to get points where we want to extract soil moisture data
-    shapefile_path = f'{root_path}/vn_points/{region}_points/{region}_points.shp'
-    gdf = gpd.read_file(shapefile_path)
-
     # Get latitude and longitude of the points
-    gdf['latitude'] = gdf.geometry.y
-    gdf['longitude'] = gdf.geometry.x
-
-    # File save coordinates of points
-    csv_file_path = f'{root_path}/vn_points/{region}_points/{region}_points.csv'
-    df = gdf.drop(columns='geometry').rename(columns={'field_1': 'id'})
-    df.to_csv(csv_file_path, index=False)
-
-    station_df = pd.read_csv(csv_file_path)
+    station_df = pd.read_csv(points_csv_path)
+    # Ensure there are columns 'latitude' and 'longitude' 
+    station_df['latitude'] = station_df['lat'].astype(float)
+    station_df['longitude'] = station_df['lon'].astype(float)
 
     if not {'id', 'latitude', 'longitude'}.issubset(station_df.columns):
         raise ValueError("CSV file must contain 'id', 'latitude', and 'longitude' columns.")
@@ -96,21 +85,17 @@ def create_files_for_region(region='crop_wood'):
     # Convert results to DataFrame 
     results_df = pd.DataFrame(results)
     # Save results to CSV
-    output_csv_path = f'{root_path}/vn_points/{region}_swc_values_2020.csv'
     results_df = results_df.dropna(subset = ['sm'])
-    results_df.to_csv(output_csv_path, index=False)
-    print(f"Saved soil water content values to {output_csv_path}")
-    
+
     # Get information of each site (value, location)
-    network = 'VN'
     print('results columns:', results_df.columns)
-    create_site_info(results_df, region, network)
+    create_site_info(results_df, network, site_info_path)
     
     # Create individual CSV files for each station
-    create_data_csv_files(results_df, region)
+    create_data_csv_files(results_df, sm_csv_folder)
     
 
-def create_site_info(df, region, network):
+def create_site_info(df, network, output_path):
     """ Create a CSV file containing site information (id, latitude, longitude) for each point in the region.\
         The site information will be used for data retrieving in file data_pre/Prepare_samples.ipynb."""
     # Drop duplicate points  
@@ -125,11 +110,10 @@ def create_site_info(df, region, network):
     site_df = site_df[['network', 'station', 'latitude', 'longitude', 's_depth', 'e_depth']].rename(
         columns={'latitude': 'lat', 'longitude': 'lon'})
     
-    output_csv = f'{root_path}/vn_points/{region}_site_info_2020.csv'
-    site_df.to_csv(output_csv, index=False)
-    print(f'Site info saved to {output_csv}')
+    site_df.to_csv(output_path, index=False)
+    print(f'Site info saved to {output_path}')
 
-def create_data_csv_files(df, region):
+def create_data_csv_files(df, output_folder):
     """ 
     For each point (station) we create a CSV file containing:
       + soil moisture
@@ -140,9 +124,6 @@ def create_data_csv_files(df, region):
     df['time'] = pd.to_datetime(df['date'])
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']
-    
-    output_folder = f'{root_path}/vn_points/{region}_cvs'
-    os.makedirs(output_folder, exist_ok=True)
 
     # For each station (point)), create a CSV file containing soil moisture data
     for station, station_df in df.groupby('station'):

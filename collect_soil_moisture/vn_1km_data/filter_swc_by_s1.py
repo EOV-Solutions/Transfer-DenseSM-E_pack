@@ -4,19 +4,16 @@ hoặc có sau 1 ngày so với ngày có dữ liệu Sentinel-1."""
 
 import pandas as pd 
 import os 
-import glob
 
 root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
 csv_folder = f'{root_path}/vn_points/crop_wood_cvs'
 s1_date_folder = f'{root_path}/points_s1_dates_csv'
-output_folder = f'{root_path}/vn_points/crop_wood_cvs_filtered'
 
-os.makedirs(output_folder, exist_ok=True)
 # Function to filter SWC data based on Sentinel-1 dates
-def filter_swc():
-    for filename in os.listdir(csv_folder):
+def filter_sm(sm_csv_folder, s1_date_folder, site_info_path, network = "VN"):
+    for filename in os.listdir(sm_csv_folder):
         if filename.endswith('.csv'):
-            file_path = os.path.join(csv_folder, filename)
+            file_path = os.path.join(sm_csv_folder, filename)
             swc_df = pd.read_csv(file_path)
             swc_df = swc_df.drop(columns=['date'])
 
@@ -53,9 +50,13 @@ def filter_swc():
             # Giữ lại các dòng có time cuối cùng nằm trong s1_dates
             filtered_swc_df = adjusted_swc_df[adjusted_swc_df['time'].isin(s1_dates)].drop(columns=['time_minus1'])
             
-            output_path = os.path.join(output_folder, filename)
+            output_path = os.path.join(sm_csv_folder, filename)
 
             filtered_swc_df.to_csv(output_path, index = False)
+            print(f"Saved filtered sm in {output_path}")
+
+    # Update a new site info file 
+    create_site_info_file(sm_csv_folder, site_info_path ,network)
 
 
 # def merge_filtered_swc():
@@ -71,13 +72,12 @@ def filter_swc():
 #     merged_filtered_swc = merged_filtered_swc.drop_duplicates(subset=['sm'])
 #     merged_filtered_swc.to_csv('/mnt/data2tb/Transfer-DenseSM-E_pack/1km_vn_data/vn_points/merged.csv')
 
-def create_site_info_file():
-    network = 'VN'
+def create_site_info_file(sm_csv_folder, site_info_path, network = "VN"):
     s_depth = 0
     e_depth = 5
     station_list = []
-    for filename in os.listdir(output_folder):
-        file_path = os.path.join(output_folder, filename)
+    for filename in os.listdir(sm_csv_folder):
+        file_path = os.path.join(sm_csv_folder, filename)
         df = pd.read_csv(file_path)
 
         if df.empty:
@@ -99,14 +99,7 @@ def create_site_info_file():
 
     # Convert to DataFrame 
     station_df = pd.DataFrame(station_list)
-    station_df.to_csv(f'{root_path}/vn_points/crop_wood_site_info.csv', index=False)
+    station_df.to_csv(site_info_path, index=False)
+    print(f"Site info CSV file is update and saved in {site_info_path}")
 
-
-def main():
-    filter_swc()
-    # After filtering, if there are points with no soil moisture data, we should create a site info file again
-    # create_site_info_file()
-
-if __name__ == "__main__":
-    main()
     

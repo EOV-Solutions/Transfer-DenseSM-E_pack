@@ -210,6 +210,7 @@ def extract_ndvi(ndvi_folder, coordinates):
     # Initialize NDVI matrix 
     ndvi_matrix = np.full((len(coordinates), num_ndvi_images), np.nan, dtype=np.float32)
     print(f"NDVI matrix shape: {ndvi_matrix.shape}")
+    print("Running NDVI extraction")
     for img_idx, tif_file in enumerate(ndvi_image_files):
         with rasterio.open(tif_file) as src:
             ndvi_values = list(src.sample(coordinates))
@@ -230,6 +231,7 @@ def extract_era5(era5_folder, coordinates, dates, num_ndvi_images):
     era5_image_files = sorted([os.path.join(era5_folder, f'Weather_{date}.tif') for date in dates])
     T_matrix = np.full((len(coordinates), num_ndvi_images), np.nan, dtype=np.float32)
     P_matrix = np.full((len(coordinates), num_ndvi_images), np.nan, dtype=np.float32)
+    print("Running Temperature and Precipitation extraction")
     for img_idx, tif_file in enumerate(era5_image_files):
         with rasterio.open(tif_file) as src:
             era5_values = list(src.sample(coordinates))

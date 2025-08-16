@@ -1,18 +1,18 @@
 """
-Phương pháp chọn điểm lấy dữ liệu trên Việt Nam sẽ là chia Việt Nam thành các ô lưới 40k (được tạo ra từ lưới 10k), lọc và giữ lại các ô chứa vị trí 
+Phương pháp chọn điểm lấy dữ liệu trên Việt Nam sẽ là chia Việt Nam thành các ô lưới 90k (được tạo ra từ lưới 10k), lọc và giữ lại các ô chứa vị trí 
 lấy dữ liệu xác định trong file csv/sample.csv. 
 
 
 Chương trình sau đây sẽ:
-- Ghép tạo lưới 40k từ lưới 10k, 
+- Ghép tạo lưới 90k từ lưới 10k, 
 - Lọc và chỉ giữ lại các ô có chứa các điểm trong csv/sample.csv
-- Lưu kết quả vào file grid_40km_with_points_1.gpkg
-- Từ các ô lưới 40k, sẽ xác định các ngày có dữ liệu Sentinel-1 của từng ô. 
+- Lưu kết quả vào file grid_90km_with_points.gpkg
+- Từ các ô lưới 90k, sẽ xác định các ngày có dữ liệu Sentinel-1 của từng ô. 
 - Lưu kết quả vào thư mục s1_dates_per_grid, mỗi ô sẽ có một file json chứa các ngày có dữ liệu Sentinel-1.
 - 
 
 Như vậy để sau này khi xử lý giá trị sm 1km NSIDC của các điểm 
-  thuộc các ô lưới 40k, ta sẽ chỉ giữ lại các giá trị sm có ngày có dữ liệu Sentinel-1.
+  thuộc các ô lưới 90k, ta sẽ chỉ giữ lại các giá trị sm có ngày có dữ liệu Sentinel-1.
 
   Đầu ra sẽ là các file csv chứa ngày có dữ liệu Sentinel-1 của từng ô trong thư mục: s1_dates_per_grid
 """
@@ -28,86 +28,30 @@ from pathlib import Path
 # Path to the data directory
 # root_path =  "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
 # Authenticate and initialize Earth Engine
-ee.Initialize()
-
-
-def create_40k_grid_from_10k(root_path):
-    """
-    Create a 40k grid from a 10k grid by grouping 2x2 blocks of 10k cells.
-    Then filter the grid to keep only those containing points from a training_data/1km_vn/sample.csv file.
-    The resulting grid will be saved to a GeoPackage file.
-
-    Input:
-    - grid_10km.gpkg: GeoPackage file containing the 10k grid.
-    - sample.csv: CSV file containing points with 'lon' and 'lat' columns.  
-    Output:
-    - grid_40km_with_points_1.gpkg: GeoPackage file containing the filtered grid cells.
-    """
-
-    # Load 10k grid
-    grid = gpd.read_file(f"{root_path}/grid/Grid_10K/grid_10km.gpkg").to_crs("EPSG:4326")
-
-    # Create 'row' and 'col' if not available in the grid
-    if 'row' not in grid.columns or 'col' not in grid.columns:
-        grid['centroid_x'] = grid.centroid.x.round(4)
-        grid['centroid_y'] = grid.centroid.y.round(4)
-        grid['row'] = grid['centroid_y'].rank(method='dense').astype(int)
-        grid['col'] = grid['centroid_x'].rank(method='dense').astype(int)
-
-    # Merge 10k grid into 40k grid by grouping into 2x2 blocks
-    # Assign group id property for each 2x2 block (4 cells)
-    grid['group_id'] = ((grid['row'] // 3).astype(int)).astype(str) + '_' + ((grid['col'] // 3).astype(int)).astype(str)
-
-    # Dissolve by group_id
-    merged_grid = grid.dissolve(by='group_id', as_index=False)
-
-    # Keep only geometry and group_id properties
-    merged_grid = merged_grid[['group_id', 'geometry']]
-
-    # Assign new sequential IDs starting from 1 for simplicity 
-    merged_grid = merged_grid.reset_index(drop=True)
-    merged_grid['id'] = range(1, len(merged_grid) + 1)
-
-    """ Now filtered 40k grids, keep only those containing points from training_data/1km_vn/csv/sample.csv """
-    # Load points from CSV and create GeoDataFrame
-    points_df = pd.read_csv(f"{root_path}/csv/sample.csv")
-    geometry = [Point(xy) for xy in zip(points_df['lon'], points_df['lat'])]
-    points_gdf = gpd.GeoDataFrame(points_df, geometry=geometry, crs="EPSG:4326")
-
-    # Filter merged grid to keep only those containing points
-    joined = gpd.sjoin(merged_grid, points_gdf, how="inner", predicate="contains")
-    selected_grid = merged_grid[merged_grid['group_id'].isin(joined['group_id'])]
-    # Copy 'id' column with name 'grid_id'
-    selected_grid['grid_id'] = selected_grid['id']
-
-    # Save the selected grid to a new GeoPackage file
-    selected_grid.to_file(f"{root_path}/grid/grid_40km_with_points_1.gpkg", driver="GPKG")
-
-
     
-def get_grid_s1_dates_vn(root_path, grid_path, start_date, end_date):
+def get_grid_s1_dates_vn(grid_path, output_dir, start_date, end_date):
     """
-    Get Sentinel-1 dates for each grid cell in the 40k grid from the defined time range.
+    Get Sentinel-1 dates for each grid cell in the 90k grid from the defined time range.
     The results will be saved in JSON files in the training_data/1km_vn/s1_dates_per_grid directory.
 
     INPUT:
     - start_date: Start date in "YYYY-MM-DD" format.    
     - end_date: End date in "YYYY-MM-DD" format.
     OUTPUT:     
-    - s1_dates_per_grid: Directory containing JSON files with Sentinel-1 dates for each filtered 40k grid cell.
+    - s1_dates_per_grid: Directory containing JSON files with Sentinel-1 dates for each filtered 90k grid cell.
     """
 
     # Get Sentinel-1 dates for each grid cell from 2021 to 2022
     # start_date = "2021-01-01"
     # end_date = "2022-12-31"
 
-    # INPUT : filtered 40k grid file 
-    grid_file = f"{root_path}/grid/grid_40km_with_points_1.gpkg"  # Must contain a 'grid_id' column
-    output_dir = f"{root_path}/s1_dates_per_grid"
     os.makedirs(output_dir, exist_ok=True)
 
-    # === Load grid geometries ===
-    grid_gdf = gpd.read_file(grid_file).to_crs("EPSG:4326")
+    # === Load grid geometries ===, ensure that it has CRS EPSG:4326
+    grid_gdf = gpd.read_file(grid_path).to_crs("EPSG:4326")
+    # Ensure contain 'grid_id' column
+    if 'grid_id' not in grid_gdf.columns:
+        raise ValueError("Grid 90k GeoDataFrame must contain 'grid_id' column")
 
     # Function to get Sentinel-1 dates for a given geometry and date range
     def get_s1_dates(geom, start_date, end_date, orbit_pass):
@@ -155,7 +99,7 @@ def get_grid_s1_dates_vn(root_path, grid_path, start_date, end_date):
             with open(out_path, "w") as f:
                 json.dump(out_data, f)
 
-            print(f"Saved dates for {grid_id}: {len(ascending_dates)} ASC, {len(descending_dates)} DESC")
+            print(f"Saved dates for grid cell {grid_id}: {len(ascending_dates)} ASC, {len(descending_dates)} DESC")
 
             time.sleep(5)
 
@@ -167,18 +111,13 @@ def get_grid_s1_dates_vn(root_path, grid_path, start_date, end_date):
 
 """Chúng ta đã thu thập các ngày có dữ liệu S1 trong từng ô của grid. Bước tiếp theo sẽ tìm các điểm thuộc từng ô và gán ngày S1 đã tìm được cho các điểm đó.
 Đầu ra sẽ là các file csv chứa các ngày S1 tương ứng với từng điểm, lưu trong thư mục training_data/1km_vn/points_s1_dates_csv."""
-def get_point_s1_dates_vn(root_path):
+def get_point_s1_dates_vn(root_path, points_csv, grid_file, grid_dates_folder, output_folder):
     """
-    Assign Sentinel-1 dates to each point in the 40k grid based on the grid cells they belong to.
+    Assign Sentinel-1 dates to each point in the 90k grid based on the grid cells they belong to.
     The results will be saved in CSV files in the training_data/1km_vn/points_s1_dates_csv directory.
-    """
 
-    # Paths
-    points_csv = f'{root_path}/csv/sample.csv'
-    grid_file = f'{root_path}/grid/grid_40km_with_points_1.gpkg'
-    grid_dates_folder = Path(f'{root_path}/s1_dates_per_grid')
-    output_folder = Path(f'{root_path}/points_s1_dates_csv')
-    output_folder.mkdir(exist_ok=True)
+    INPUT:
+    """
 
     # Load points data (lat, lon) from CSV
     df_points = pd.read_csv(points_csv)
@@ -186,7 +125,7 @@ def get_point_s1_dates_vn(root_path):
                                 geometry=gpd.points_from_xy(df_points['lon'], df_points['lat']),
                                 crs='EPSG:4326')
 
-    # Load filtered 40k grid
+    # Load filtered 90k grid
     grid_gdf = gpd.read_file(grid_file)
     grid_gdf = grid_gdf.to_crs(points_gdf.crs)
 
@@ -208,8 +147,8 @@ def get_point_s1_dates_vn(root_path):
             continue
 
         # Open the corresponding date JSON file for this grid cell
-        json_path = grid_dates_folder/f's1_dates_{grid_id}.json'
-        if not json_path.exists():
+        json_path = f"{grid_dates_folder}/s1_dates_{grid_id}.json"
+        if not os.path.exists(json_path):
             print(f'Not found json file for {grid_id}')
             continue
         with open(json_path, 'r') as f:
@@ -224,9 +163,10 @@ def get_point_s1_dates_vn(root_path):
         # Create csv file for each point
         for _, point_row in points_in_grid.iterrows():
             point_id = point_row['id']
-            output_path = output_folder / f'{point_id}.csv'
+            output_path = f"{output_folder}/{point_id}.csv"
             all_dates.to_csv(output_path, index=False)
 
+    # Save this json file to check points in each grid cells (visualization in qgis)
     with open(f'{root_path}/grid/grid_points.json', 'w') as f:
         json.dump(grid_points, f, ensure_ascii = False, indent = 2)
 

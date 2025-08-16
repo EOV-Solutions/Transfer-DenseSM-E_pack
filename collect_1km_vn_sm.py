@@ -1,6 +1,6 @@
 """
 The program run pipeline to collection soil moisture data 1km from NSIDC as ground truth 
-Step 1: Split Vietnam as a 40k grid (merged from 10k grid). Filter and keep grid cells that contains points (sample.csv) where we will get sm. 
+Step 1: Split Vietnam as a 90k grid (merged from 10k grid). Filter and keep grid cells that contains points (sample.csv) where we will get sm. 
 Step 2: Get Sentinel-1 date information on the filtered grid cells. 
 Step 3: Determine points present on each grid cells and assign the grid cell's S1 date for those points. 
 Step 4: From points where we will get data, extract soil moisture values from NSIDC tiff images. Get sm data in each in two year (2021-2022)
@@ -15,23 +15,25 @@ import logging
 import pandas as pd
 from shapely.geometry import Point
 import geopandas as gpd
+import os
+import ee
 
+ee.Initialize()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def create_40k_grid_from_10k(grid_path, points_csv_path, output_path):
+def create_90k_grid_from_10k(grid_path, points_csv_path, output_path):
     """
-    Create a 40k grid from a 10k grid by grouping 2x2 blocks of 10k cells.
+    Create a 90k grid from a 10k grid by grouping 3x3 blocks of 10k cells.
     Then filter the grid to keep only those containing points from a training_data/1km_vn/sample.csv file.
     The resulting grid will be saved to a GeoPackage file.
 
     Input:
-    - grid_10km.gpkg: GeoPackage file containing the 10k grid.
-    - sample.csv: CSV file containing points with 'lon' and 'lat' columns.  
+    - grid_path: GeoPackage file containing the 10k grid.
+    - point_csv_path: CSV file containing points with 'lon' and 'lat' columns.  
     Output:
-    - grid_40km_with_points_1.gpkg: GeoPackage file containing the filtered grid cells.
+    - grid_90km_with_points.gpkg: GeoPackage file containing the filtered grid cells.
     """
-
     # Load 10k grid, ensure that it has CRS EPSG:4326
     grid = gpd.read_file(grid_path).to_crs("EPSG:4326")
 
@@ -42,8 +44,8 @@ def create_40k_grid_from_10k(grid_path, points_csv_path, output_path):
         grid['row'] = grid['centroid_y'].rank(method='dense').astype(int)
         grid['col'] = grid['centroid_x'].rank(method='dense').astype(int)
 
-    # Merge 10k grid into 40k grid by grouping into 2x2 blocks
-    # Assign group id property for each 2x2 block (4 cells)
+    # Merge 10k grid into 90k grid by grouping into 3x3 blocks
+    # Assign group id property for each 3x3 block (9 cells)
     grid['group_id'] = ((grid['row'] // 3).astype(int)).astype(str) + '_' + ((grid['col'] // 3).astype(int)).astype(str)
 
     # Dissolve by group_id
@@ -56,7 +58,7 @@ def create_40k_grid_from_10k(grid_path, points_csv_path, output_path):
     merged_grid = merged_grid.reset_index(drop=True)
     merged_grid['id'] = range(1, len(merged_grid) + 1)
 
-    """ Now filtered 40k grids, keep only those containing points from training_data/1km_vn/csv/sample.csv """
+    """ Now filtered 90k grids, keep only those containing points from training_data/1km_vn/csv/sample.csv """
     # Load points from CSV and create GeoDataFrame
     points_df = pd.read_csv(points_csv_path)
     geometry = [Point(xy) for xy in zip(points_df['lon'], points_df['lat'])]
@@ -64,28 +66,68 @@ def create_40k_grid_from_10k(grid_path, points_csv_path, output_path):
 
     # Filter merged grid to keep only those containing points
     joined = gpd.sjoin(merged_grid, points_gdf, how="inner", predicate="contains")
-    selected_grid = merged_grid[merged_grid['group_id'].isin(joined['group_id'])]
+    selected_grid = merged_grid[merged_grid['group_id'].isin(joined['group_id'])].copy()
     # Copy 'id' column with name 'grid_id'
     selected_grid['grid_id'] = selected_grid['id']
 
     # Save the selected grid to a new GeoPackage file
     selected_grid.to_file(output_path, driver="GPKG")
-    print(f"Saved 40k grid in {output_path}")
+    print(f"Saved 90k grid in {output_path}")
 
-def run_pipeline(root_path, grid_path_10k, points_csv_path, start_date, end_date ,tif_folder, filter_threshold=0.8):
-    print("*****Merge 10k grid to obtain 40k grid")
-    grid_path_40k = f"{root_path}/grid/grid_40km_with_points.gpkg"
-    create_40k_grid_from_10k(grid_path_10k, points_csv_path, grid_path_40k)
 
-    print("*****Get Sentinel-1 dates for the grid cells")
-    get_s1_dates.get_grid_s1_dates_vn(root_path, grid_path_40k, start_date, end_date)
+def run_pipeline(root_path, grid_path_90k, points_csv_path, start_date, end_date ,tif_folder, network = 'VN'):
 
-    print("*****Get Sentinel-1 dates for the points")
-    get_s1_dates.get_point_s1_dates_vn(root_path)
+    print("*****Get Sentinel-1 dates for the grid cells*****")
+    # Define output directory for S1 dates fo each grid cell
+    s1_dates_grid_dir = f"{root_path}/s1_dates_per_grid" # Folder containing csv files of s1 dates for each grid cell
+    # os.makedirs(s1_dates_grid_dir, exist_ok=True)
+    # get_s1_dates.get_grid_s1_dates_vn(grid_path_90k, s1_dates_grid_dir, start_date, end_date)
+    # print("Saved S1 dates for grid cells in", s1_dates_grid_dir)
 
-    print("*****Extract SWC from TIF and save in CSV files")
-    extract_sm.create_files_for_region()
+    print("*****Get Sentinel-1 dates for the points*****")
+    s1_dates_points_dir = f"{root_path}/points_s1_dates_csv_temp" # Folder containing csv files of s1 dates for each point 
+    os.makedirs(s1_dates_points_dir, exist_ok=True)
+    get_s1_dates.get_point_s1_dates_vn(root_path, points_csv_path, grid_path_90k, s1_dates_grid_dir, s1_dates_points_dir)
+    print("Saved S1 dates for points in", s1_dates_points_dir)
 
+    print("*****Extract soil moisture from TIF and save in CSV files*****")
+    site_info_path = f'{root_path}/site_info.csv' # File CSV contaning information's sites (points) 
+    sm_csv_folder = f'{root_path}/vn_sm_csv' # Folder contains CSV files of soil moisture data for each site (point)
+    extract_sm.create_files_for_region(points_csv_path, site_info_path, sm_csv_folder, tif_folder, network)
+    print("Saved soil moisture data for each point in CSV files in", sm_csv_folder)
+
+    # After extracting soil moisture values, we need to filter them by using Sentinel-1 dates
+    # Then rewrite on csv files on sm_csv_folder
+    print("*****Filter soil moisture based Sentinel-1 dates*****")
+    filter_sm.filter_sm(sm_csv_folder, s1_dates_points_dir, site_info_path, network)
+
+# Path to the folder of Vietnam soil moisture data
 root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
+# CSV file contain points to get sm
+points_csv_path = f"{root_path}/csv/sample.csv"
+# Grid of 10k and 90k of Vietnam 
 grid_path_10k = f"{root_path}/grid/Grid_10K/grid_10km.gpkg"
-points_csv_path = f"{root_path}/csv/samples"
+grid_path_90k = f"{root_path}/grid/grid_90km_with_points.gpkg"
+# Folder contains NSIDC tif images - aka: 1km soil moisture
+tif_folder = '/mnt/data2tb/nsidc_images'
+# Network
+network = "VN"
+# Define time range to extract soil moisture data (must have downloaded NSIDC data in this time range)
+start_date = "2021-01-01"
+end_date = "2021-02-25"
+
+# Do not need to run this step again if the 90k grid already exists
+if not os.path.exists(grid_path_90k):
+    print("*****Merge 10k grid to obtain 90k grid*****")
+    # There would be some warning, it's okay, dont need to be fixed
+    create_90k_grid_from_10k(grid_path_10k, points_csv_path, grid_path_90k)
+
+run_pipeline(
+    root_path=root_path,
+    grid_path_90k=grid_path_90k,
+    points_csv_path=points_csv_path,
+    start_date=start_date,
+    end_date=end_date,
+    tif_folder = tif_folder,
+    network = network
+)

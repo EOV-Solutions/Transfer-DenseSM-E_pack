@@ -83,20 +83,28 @@ for s1_file in os.listdir(combination_folder):
 # Traverse through the file of each date and run inference
 for target_date in target_dates:
     input_csv = f"roi_inference/regions_data_results/{region}/csv_output/combination/{target_date}_tif.csv"
+    print("Input file ", input_csv)
     output_csv = f"roi_inference/regions_data_results/{region}/prediction/{target_date}.csv"
     if os.path.exists(output_csv):
             print(f'{target_date} already predicted')
         #  continue
+
+    # Load input data
+    input_data = pd.read_csv(input_csv)
+    # Check if columns '0' to '152' exist
+    expected_cols = [str(i) for i in range(0, 153)]
+    missing_cols = [col for col in expected_cols if col not in input_data.columns]
+    if missing_cols:
+        print(f"Error: Missing columns in input_data: {missing_cols}")
+        continue
+    input_data = np.asarray(input_data.loc[:, '0':'152']).astype(np.float32)
+    input_data = input_reorganize(input_data)
     records = []
     # Traverse through the model variants and run inference
     # For each model, load the input data, run inference and save the predictions
     # We apply ensemble by averaging the predictions of all models
     for bk, wd in models:
-        model_path = f"Demo/ft12_models/fusion_full/a70_bauto_r10/m_{bk}_{wd}.pt"
-        # Load input data
-        input_data = pd.read_csv(input_csv)
-        input_data = np.asarray(input_data.loc[:, '0':'152']).astype(np.float32)
-        input_data = input_reorganize(input_data)
+        model_path = f"trained_models/ft12_models/fusion_full/a70_bauto_r10/m_{bk}_{wd}.pt"
         # Initialize inference class
         inference = DenseSMInference(model_path, width=wd, blocks=bk)
 
