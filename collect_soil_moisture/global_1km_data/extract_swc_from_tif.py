@@ -10,35 +10,13 @@ import geopandas as gpd
 from rasterio.transform import rowcol  
 from datetime import datetime
 
-# Choose the network (region) you want to process INDIA_1km or CHINA_1km
-network = 'INDIA_1km'
-country = 'india'  # or 'china'
-# The folder containing the tiff files of NSIDC soil moisture data 1km resolution
-tiff_folder = '/mnt/data2tb/nsidc_images'
-root_path = f'/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global/{country}'
-
-
-def process_region(region='tree_grass_crops'):
+def extract_and_create_files(points_csv_path, tiff_folder, site_info_path, sm_csv_folder, network):
     """ Here, region is the type of land cover, which we want to extract soil moisture data for.
         The function will read the shapefile of points (where we will get soil moisture), 
         extract soil moisture data from tiff files based on the points,
         and save the results to a CSV file.
     """
-    
-    # Read shapefile to get points where we want to extract soil moisture data
-    shapefile_path = f'{root_path}/points/{region}_points.shp'
-    gdf = gpd.read_file(shapefile_path)
-
-    # Get latitude and longitude of the points
-    gdf['latitude'] = gdf.geometry.y
-    gdf['longitude'] = gdf.geometry.x
-
-    # File save coordinates of points
-    csv_file_path = f'{root_path}/points/{region}_points.csv'
-    df = gdf.drop(columns='geometry').rename(columns={'field_1': 'id'})
-    df.to_csv(csv_file_path, index=False)
-
-    station_df = pd.read_csv(csv_file_path)
+    station_df = pd.read_csv(points_csv_path)
 
     if not {'id', 'latitude', 'longitude'}.issubset(station_df.columns):
         raise ValueError("CSV file must contain 'id', 'latitude', and 'longitude' columns.")
@@ -99,22 +77,17 @@ def process_region(region='tree_grass_crops'):
 
     # Convert results to DataFrame 
     results_df = pd.DataFrame(results)
-    # Save results to CSV
-    output_csv_path = f'{root_path}/points/{region}_swc_values.csv'
-    results_df = results_df.dropna(subset = ['sm'])
-    results_df.to_csv(output_csv_path, index=False)
-    print(f"Saved soil water content values to {output_csv_path}")
     
     # Get information of each site (value, location)
     print('results columns:', results_df.columns)
-    create_site_info(results_df, region, network)
+    create_site_info(results_df, network, site_info_path)
     
     # Create individual CSV files for each station
     # These files will be used for data retrieving in file data_pre/Prepare_samples.ipynb
-    create_data_csv_files(results_df, region)
+    create_data_csv_files(results_df, sm_csv_folder)
     
 
-def create_site_info(df, region, network):
+def create_site_info(df, network, site_info_path):
     """ Create a CSV file containing site information (id, latitude, longitude) for each point in the region.\
         The site information will be used for data retrieving in file data_pre/Prepare_samples.ipynb."""
     
@@ -130,11 +103,12 @@ def create_site_info(df, region, network):
     site_df = site_df[['network', 'station', 'latitude', 'longitude', 's_depth', 'e_depth']].rename(
         columns={'latitude': 'lat', 'longitude': 'lon'})
     
-    output_csv = f'{root_path}/points/{region}_site_info.csv'
-    site_df.to_csv(output_csv, index=False)
-    print(f'Site info saved to {output_csv}')
+    # Sort sites based on their station
+    site_df = site_df.sort_values(by = 'station')
+    site_df.to_csv(site_info_path, index=False)
+    print(f'Site info saved to {site_info_path}')
 
-def create_data_csv_files(df, region):
+def create_data_csv_files(df, output_folder):
     """ for each point (station) we create a CSV file containing:
       + soil moisture
       + coordinates
@@ -145,7 +119,6 @@ def create_data_csv_files(df, region):
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']
     
-    output_folder = f'{root_path}/{region}_csv'
     os.makedirs(output_folder, exist_ok=True)
 
     # For each station (point)), create a CSV file containing soil moisture data
@@ -158,6 +131,3 @@ def create_data_csv_files(df, region):
         station_df = station_df.sort_values(by = 'date')
         station_df.to_csv(station_file, index=False)
         print(f"Saved: {station_file}")
-
-if __name__ == "__main__":
-    process_region()

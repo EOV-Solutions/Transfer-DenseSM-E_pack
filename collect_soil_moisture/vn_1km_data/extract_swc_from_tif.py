@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import pyproj 
 
 
-def create_files_for_region(points_csv_path, site_info_path, sm_csv_folder, tiff_folder = '/mnt/data2tb/nsidc_images', network = 'VN'):
+def extract_and_create_files(points_csv_path, site_info_path, sm_csv_folder, tiff_folder = '/mnt/data2tb/nsidc_images', network = 'VN'):
     """ Here, region is the type of land cover, which we want to extract soil moisture data for in VietNam.
         The function will read the shapefile of points (where we will get soil moisture), 
         extract soil moisture data from NSIDC tiff images based on the points,
@@ -48,11 +48,15 @@ def create_files_for_region(points_csv_path, site_info_path, sm_csv_folder, tiff
         tiff_path = os.path.join(tiff_folder, image)
         with rasterio.open(tiff_path) as src:
             print(f"Processing image: {image}")
-            print("Raster CRS:", src.crs)
             raster_crs = src.crs
 
             # Because tiff file is in EPSG:6933, we need to transform the coordinates of points to the raster CRS
-            transformer = Transformer.from_crs("EPSG:4326", raster_crs, always_xy=True)
+            try:
+                transformer = Transformer.from_crs("EPSG:4326", raster_crs, always_xy=True)
+            except Exception as e:
+                print(f"The NSDIC tiff file must has EPSG:6933 CRS")
+                transformer = Transformer.from_crs("EPSG:4326", "EPSG:6933", always_xy=True)
+
             coords_lonlat = list(zip(station_df['longitude'], station_df['latitude']))
             # Transform points' coordinates to raster CRS
             coords_raster = [transformer.transform(lon, lat) for lon, lat in coords_lonlat]
@@ -110,6 +114,8 @@ def create_site_info(df, network, output_path):
     site_df = site_df[['network', 'station', 'latitude', 'longitude', 's_depth', 'e_depth']].rename(
         columns={'latitude': 'lat', 'longitude': 'lon'})
     
+    # Sort sites based on their station
+    site_df = site_df.sort_values(by = 'station')
     site_df.to_csv(output_path, index=False)
     print(f'Site info saved to {output_path}')
 
@@ -135,6 +141,3 @@ def create_data_csv_files(df, output_folder):
         station_df = station_df.sort_values(by = 'date')
         station_df.to_csv(station_file, index=False)
         print(f"Saved: {station_file}")
-
-if __name__ == "__main__":
-    create_files_for_region()

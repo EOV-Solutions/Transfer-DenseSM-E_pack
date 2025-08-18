@@ -63,7 +63,7 @@ if __name__ == "__main__":
     (3,128),(4,8),(4,16),(4,32),(4,64),(4,128),(5,8),(5,16),(5,32),(5,64),(5,128)]
     # Define the model variants to be used for inference, distinguish by (number of blocks, width)
     input_csv = "100m_data/output_tb/tb_merged.csv"
-    output_csv = 'data_pre/output_result.csv'
+    output_csv = 'output/output_result.csv'
     records = []
     # Traverse through the model variants and run inference
     # For each model, load the input data, run inference and save the predictions

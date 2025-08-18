@@ -1,23 +1,7 @@
-datasets
-earthengine-api
-geemap
-geocoder
-geojson
-google-api-core
-google-api-python-client
-google-auth
-numpy
-opencv-python
-planet
-scikit-learn
-torch
-torchvision
-gdal
-geos
-geotiff
-hdf5
-matplotlib
-pandas
-pillow
-python
-setuptools
+python 3.11
+conda create -n sm python=3.11
+conda activate sm
+conda install -c conda-forge geopandas fiona gdal pyogrio shapely rasterio
+pip install earthengine-api
+pip install geemap
+pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121

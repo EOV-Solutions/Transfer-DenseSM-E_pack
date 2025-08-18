@@ -5,7 +5,6 @@
 """
 
 import ee
-import geemap
 import geopandas as gpd
 import rasterio
 import rasterio.mask
@@ -55,11 +54,18 @@ def download_landcover_data():
     task.start()
 
 
-def filtered_grid(root_path, region, grid_path, landcover_path, threshold = 50):
+def filter_grid(grid_path, landcover_path, threshold = 50, output_path = None):
 
     """Filter the grid based on the land cover data
     This function reads the land cover data and filters the grid based on three preferred classes: crop, tree, land.
-    If a grid cell have the percentage of the area of the selected selected over 'threshold', then keep it"""
+    If a grid cell have the percentage of the area of the selected selected over 'threshold', then keep it
+    
+    Input: 
+     -region : 'china' or 'india'
+    Output:
+     - Filtered grid 
+     - Save the the filtered grid based on classes (crop, grass, tree)
+    """
 
     # Load and convert your grid to EPSG:4326
     grid = gpd.read_file(grid_path).to_crs("EPSG:4326")
@@ -72,47 +78,60 @@ def filtered_grid(root_path, region, grid_path, landcover_path, threshold = 50):
             sys.exit("[ERROR] Grid has no CRS defined.")
         if src.crs is None:
             sys.exit("[ERROR] Landcover raster has no CRS defined.")
-
         if grid.crs.to_epsg() != 4326:
             sys.exit(f"[ERROR] Grid CRS is {grid.crs}, expected EPSG:4326.")
 
         results = []
 
         for idx, row in grid.iterrows():
+            # Get the geometry of the grid cell
             geom = [row['geometry']]
             try:
+                # Mask the land cover raster with the grid cell geometry
                 out_image, out_transform = rasterio.mask.mask(src, geom, crop=True)
-
+                # Land cover labels are in the first band
                 label_pixels = out_image[0]
+                # Remove nodata values
                 valid_pixels = label_pixels[label_pixels != src.nodata]
+                
                 if len(valid_pixels) == 0:
                     continue
 
-                step = "count label frequencies"
                 unique, counts = np.unique(valid_pixels, return_counts=True)
                 label_count = dict(zip(unique, counts))
 
-                step = "calculate percentage"
                 selected_total = sum(label_count.get(k, 0) for k in [1, 2, 4])
                 total = sum(counts)
-                percent = selected_total / total * 100
 
+                # Calculate the percentage of selected classes
+                percent = selected_total / total * 100 
+                # If the percentage is greater than threshold, add the grid cell to results
                 if percent > threshold:
                     results.append(row['id'])
 
             except Exception as e:
-                print(f"[ERROR] Failed on grid cell {row['id']} at step: {step} → {e}")
+                print(f"[ERROR] Failed on grid cell {row['id']}: {e}")
                 print("Please, check the CRS of landcover data and the grid!!!")
 
     # Create a new GeoDataFrame with only the selected grid cells
     selected_grid = grid[grid['id'].isin(results)]
 
     # Save to GPKG
-    selected_grid.to_file(f"{root_path}/{region}/map/filtered_grid/tree_grass_crops.gpkg", driver="GPKG")
-    print(f"Filtered grid saved to {root_path}/{region}/map/filtered_grid/tree_grass_crops.gpkg")
+    selected_grid.to_file(output_path, driver="GPKG")
+    print(f"Filtered grid saved to {output_path}")
     return selected_grid
 
-def choose_india_points(root_path, grid, output_path):
+"""
+Không thể dùng code chung để chọn điểm lấy dữ liệu trên vùng Trung Quốc và Ấn Độ
+Bởi vì có sự đặc biệt ở vùng lấy dữ liệu tại Trung Quốc. Ở đó đa số toàn đồi núi do đó, 
+nếu lấy điểm ngẫu nhiên trong các grid cell được lọc sẽ thường rơi vào các vùng là rừng núi. 
+Cách giải quyết đó là, xét trong từng grid cell, nếu tại ô đó có vùng crop sẽ chọn điểm ngẫu nhiên trên crop, 
+còn không có crop trong ô, thì sẽ phải bắt buộc chọn điểm ngẫu nhiên trên vùng rừng núi.
+Còn với Ấn Độ, vùng lấy dữ liệu là đồng bằng nên không cần phải làm phức tạp như vậy. 
+Chỉ đơn giản là chọn điểm ngẫu nhiên trong từng grid cell
+"""
+
+def choose_india_points(grid, output_path):
     """
     Choose random points in the filtered grid for India
     """
@@ -134,13 +153,15 @@ def choose_india_points(root_path, grid, output_path):
 
     # Save to CSV
     points_df = pd.DataFrame(points)
-    points_df.to_csv(f"{root_path}/india/random_points_in_filtered_grid.csv", index=False)
-    print(f"Selected random points saved to {root_path}/india/random_points_in_filtered_grid.csv")
+    points_df.to_csv(output_path, index=False)
+    print(f"Selected random points saved to {output_path}")
     return points_df
 
-def choose_china_points(root_path, grid, landcover_path, output_path):
+def choose_china_points(grid, landcover_path, output_path):
     """
-    Choose random points in the filtered grid for China
+    Select random locations for getting soil moisture data from filtered grid in China.
+    Because Chinese region is mountainous, so that we have to choose randon locations in crop area. 
+    If there is no crop in the grid cell, we will select random locations.
     """
     # grid = gpd.read_file("china/map/filtered_grid/tree_grass_crops.gpkg").to_crs("EPSG:4326")
 
@@ -151,6 +172,7 @@ def choose_china_points(root_path, grid, landcover_path, output_path):
         for idx, row in grid.iterrows():
             polygon = row['geometry']
             grid_id = row['id']
+            # Get the geometry of the grid cell
             geom = [polygon]
 
             try: 

@@ -9,22 +9,23 @@ from rasterio.transform import rowcol
 from datetime import datetime, timedelta
 
 # region = 'china'  # or 'india'
-def extract_data_for_region(region, station_df_path, root_path, tiff_folder, s1_date_csv, site_info_path, output_folder):
+def extract_data_for_region(network, station_df_path, tiff_folder, s1_date_csv, site_info_path, output_folder):
     """Get pixels' values and information of points as save them as CSV files 
     In this code, a point is called a station"""
     
-    network = region.upper()
+    # network = region.upper() + '_100m'  # Network name for the region
     s1_date = pd.read_csv(s1_date_csv)
     station_df = pd.read_csv(station_df_path)
     if not {'id', 'latitude', 'longitude'}.issubset(station_df.columns):
         raise ValueError("CSV file must contain 'id', 'latitude', and 'longitude' columns.")
     
     results = []
-    
+    # Loop through each soil moisture TIFF file in the folder of Planet Variables dataset
     for image in os.listdir(tiff_folder):
         if not image.endswith('.tiff'):
             continue
-            
+        
+        # Extract date from the image filename using regex
         date = re.search(r'(\d{4}-\d{2}-\d{2})', image)
         date = date.group(1) if date else None
 
@@ -34,11 +35,15 @@ def extract_data_for_region(region, station_df_path, root_path, tiff_folder, s1_
         date_obj = datetime.strptime(date, '%Y-%m-%d')
         previous_date = (date_obj - timedelta(days=1)).strftime('%Y-%m-%d')
 
-        # Check if the previous date's image exists in the folder 
-        if previous_date in s1_date['date'].values:
-            date = previous_date
-        else:
+        # Because when downloading data from Planet, we just got the soil moistue data, 
+        # which has date coinciding with the S1 dates, or after S1 dates 1 day.
+        # So there are only 2 cases:
+        # 1. The date is in the S1 dates, we will use this date 
+        # 2. The date is not in the S1 dates, we will use the previous date 
+        if date in s1_date['date'].values:
             print(f'There is data for S1 for this date: {date}')
+        else:
+            date = previous_date
 
         tiff_path = os.path.join(tiff_folder, image)
         with rasterio.open(tiff_path) as src:
@@ -75,10 +80,6 @@ def extract_data_for_region(region, station_df_path, root_path, tiff_folder, s1_
 
     # Convert results to DataFrame 
     results_df = pd.DataFrame(results)
-    # Save results to CSV
-    output_csv_path = f'{root_path}/{region}/{region}_swc_values.csv'
-    results_df.to_csv(output_csv_path, index=False)
-    print(f"Saved soil water content values to {output_csv_path}")
     
     create_site_info(results_df, network, site_info_path)
     

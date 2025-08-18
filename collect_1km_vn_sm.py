@@ -74,15 +74,75 @@ def create_90k_grid_from_10k(grid_path, points_csv_path, output_path):
     selected_grid.to_file(output_path, driver="GPKG")
     print(f"Saved 90k grid in {output_path}")
 
+def merge_filtered_sm_csv(sm_csv_folder, output_path, network = "VN"):
+    """
+    Merge all filtered soil moisture CSV files in the specified folder into a single CSV file.
+    The merged file will contain unique rows based on the 'sm' column.
+    
+    Input:
+    - sm_csv_folder: Folder containing individual CSV files of soil moisture data.
+    - output_path: Path to save the merged CSV file.
+    - network: Name of the dataset (default is "VN").
+    """
+    # Load all CSV files of all sites the region (network)
+    files = os.listdir(sm_csv_folder)
 
-def run_pipeline(root_path, grid_path_90k, points_csv_path, start_date, end_date ,tif_folder, network = 'VN'):
+    # Initialize list to store DataFrames
+    df_list = []
+
+    # Traverse through each file in the directory
+    for file in files:
+        station = file.split('.')[0]
+
+        # Read CSV
+        df = pd.read_csv(os.path.join(sm_csv_folder, file))
+        # Check if the first column is unnamed or empty, and drop it if necessary
+        if df.columns[0] in [None, '', 'Unnamed: 0']:
+            df = df.iloc[:, 1:] # drop the first column
+
+        # Drop rows with NaN values
+        df = df.dropna()
+
+        # Insert 'network' and 'station' columns at the beginning
+        df.insert(0, 'network', network)
+        df.insert(1, 'station', station)
+        # print(len(df))
+        df_list.append(df)
+
+        merged_df = pd.concat(df_list, ignore_index= True)
+
+        merged_df.insert(0, 's_index', range(1, len(merged_df)+1))
+
+        # Save to a single csv file
+        merged_df.to_csv(output_path, index=False)
+        print(f"Saved merged soil moisture data in {output_path} with {len(merged_df)} samples")
+
+def run_pipeline_vn(root_path, grid_path_90k, points_csv_path, start_date, end_date ,tif_folder, network = 'VN'):
+    """
+    Run the pipeline to collect soil moisture data from NSIDC for Vietnam.
+    Input:
+    - root_path: Root path for the directory contain all data (input, output, processed).
+    - grid_path_90k: Path to the 90k grid GeoPackage file.
+    - points_csv_path: Path to the CSV file containing points to get soil moisture data.
+    - start_date: Start date for the soil moisture data extraction.
+    - end_date: End date for the soil moisture data extraction.
+    - tif_folder: Folder containing NSIDC soil moisture TIFF images.
+    - network: Name of the dataset (default is "VN").
+    
+    Steps:
+    1. Get Sentinel-1 dates for the grid cells.
+    2. Get Sentinel-1 dates for the points from grid cells' dates.
+    3. Extract soil moisture values from NSIDC TIFF images.
+    4. Filter soil moisture values based on Sentinel-1 dates.
+       Save site information and individual CSV files for each station.
+    5. Merge all filtered soil moisture CSV files into a single CSV file."""
 
     print("*****Get Sentinel-1 dates for the grid cells*****")
     # Define output directory for S1 dates fo each grid cell
     s1_dates_grid_dir = f"{root_path}/s1_dates_per_grid" # Folder containing csv files of s1 dates for each grid cell
-    # os.makedirs(s1_dates_grid_dir, exist_ok=True)
+    os.makedirs(s1_dates_grid_dir, exist_ok=True)
     # get_s1_dates.get_grid_s1_dates_vn(grid_path_90k, s1_dates_grid_dir, start_date, end_date)
-    # print("Saved S1 dates for grid cells in", s1_dates_grid_dir)
+    print("Saved S1 dates for grid cells in", s1_dates_grid_dir)
 
     print("*****Get Sentinel-1 dates for the points*****")
     s1_dates_points_dir = f"{root_path}/points_s1_dates_csv_temp" # Folder containing csv files of s1 dates for each point 
@@ -93,25 +153,23 @@ def run_pipeline(root_path, grid_path_90k, points_csv_path, start_date, end_date
     print("*****Extract soil moisture from TIF and save in CSV files*****")
     site_info_path = f'{root_path}/site_info.csv' # File CSV contaning information's sites (points) 
     sm_csv_folder = f'{root_path}/vn_sm_csv' # Folder contains CSV files of soil moisture data for each site (point)
-    extract_sm.create_files_for_region(points_csv_path, site_info_path, sm_csv_folder, tif_folder, network)
+    os.makedirs(sm_csv_folder, exist_ok=True)
+    extract_sm.extract_and_create_files(points_csv_path, site_info_path, sm_csv_folder, tif_folder, network)
     print("Saved soil moisture data for each point in CSV files in", sm_csv_folder)
 
     # After extracting soil moisture values, we need to filter them by using Sentinel-1 dates
     # Then rewrite on csv files on sm_csv_folder
     print("*****Filter soil moisture based Sentinel-1 dates*****")
     filter_sm.filter_sm(sm_csv_folder, s1_dates_points_dir, site_info_path, network)
+    print("Saved soil filtered moisture data by S1 dates for each point in CSV files in", sm_csv_folder)
 
-# Path to the folder of Vietnam soil moisture data
-root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn"
-# CSV file contain points to get sm
-points_csv_path = f"{root_path}/csv/sample.csv"
+root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn" # Path to the folder of Vietnam soil moisture data
+points_csv_path = f"{root_path}/csv/sample.csv" # CSV file contain points to get sm
 # Grid of 10k and 90k of Vietnam 
 grid_path_10k = f"{root_path}/grid/Grid_10K/grid_10km.gpkg"
 grid_path_90k = f"{root_path}/grid/grid_90km_with_points.gpkg"
-# Folder contains NSIDC tif images - aka: 1km soil moisture
-tif_folder = '/mnt/data2tb/nsidc_images'
-# Network
-network = "VN"
+tif_folder = '/mnt/data2tb/nsidc_images' # Folder contains NSIDC tif images - aka: 1km soil moisture
+network = "VN" # Network (name for the data)
 # Define time range to extract soil moisture data (must have downloaded NSIDC data in this time range)
 start_date = "2021-01-01"
 end_date = "2021-02-25"
@@ -122,7 +180,7 @@ if not os.path.exists(grid_path_90k):
     # There would be some warning, it's okay, dont need to be fixed
     create_90k_grid_from_10k(grid_path_10k, points_csv_path, grid_path_90k)
 
-run_pipeline(
+run_pipeline_vn(
     root_path=root_path,
     grid_path_90k=grid_path_90k,
     points_csv_path=points_csv_path,

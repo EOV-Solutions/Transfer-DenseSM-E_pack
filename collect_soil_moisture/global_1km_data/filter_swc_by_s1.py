@@ -5,26 +5,17 @@
 
 import pandas as pd 
 import os 
-import glob
 
-REGION = 'india' # or 'china'
-network = 'INDIA_1km' # or 'CHINA_1km'
-root_path = "/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global"
-csv_folder = f'{root_path}/{REGION}/tree_grass_crops_csv'
-output_folder = f'{root_path}/{REGION}/tree_grass_crops_csv_filtered'
-s1_date_path = f'{root_path}/{REGION}/{REGION}_s1_metadata.csv'
-
-os.makedirs(output_folder, exist_ok=True)
-def filter_swc():
-    s1_date_df = pd.read_csv(s1_date_path)
+def filter_sm(sm_csv_folder, s1_dates_path, site_info_path, network):
+    s1_date_df = pd.read_csv(s1_dates_path)
     s1_date_df['date'] = pd.to_datetime(s1_date_df['date'])
     # Get days from Sentinel-1 metadata 
     s1_dates = set(s1_date_df['date'])
 
     # Loop through each CSV file of points in the folder to filter
-    for filename in os.listdir(csv_folder):
+    for filename in os.listdir(sm_csv_folder):
         if filename.endswith('.csv'):
-            file_path = os.path.join(csv_folder, filename)
+            file_path = os.path.join(sm_csv_folder, filename)
             swc_df = pd.read_csv(file_path)
             swc_df = swc_df.drop(columns=['date'])
             id = filename.split('.')[0]
@@ -52,30 +43,18 @@ def filter_swc():
             # Giữ lại các dòng có time cuối cùng nằm trong s1_dates
             filtered_swc_df = adjusted_swc_df[adjusted_swc_df['time'].isin(s1_dates)].drop(columns=['time_minus1'])
             
-            output_path = os.path.join(output_folder, filename)
+            output_path = os.path.join(sm_csv_folder, filename)
 
             filtered_swc_df.to_csv(output_path, index = False)
+    # Update a new site info file 
+    create_site_info_file(sm_csv_folder, site_info_path ,network)
 
-
-# def merge_filtered_swc():
-#     df_list = []
-#     filtered_csv_path = glob.glob(os.path.join(output_folder, '*.csv'))
-#     for path in filtered_csv_path:
-#         filtered_swc = pd.read_csv(path)
-#         filtered_swc = filtered_swc.dropna()
-#         df_list.append(filtered_swc)
-
-#     merged_filtered_swc = pd.concat(df_list, ignore_index= True)
-
-#     merged_filtered_swc = merged_filtered_swc.drop_duplicates(subset=['sm'])
-#     merged_filtered_swc.to_csv(f'{root_path}/{REGION}/points/merged.csv')
-
-def create_site_info_file():
+def create_site_info_file(sm_csv_folder, site_info_path, network):
     s_depth = 0
     e_depth = 5
     station_list = []
-    for filename in os.listdir(output_folder):
-        file_path = os.path.join(output_folder, filename)
+    for filename in os.listdir(sm_csv_folder):
+        file_path = os.path.join(sm_csv_folder, filename)
         df = pd.read_csv(file_path)
 
         if df.empty:
@@ -97,14 +76,8 @@ def create_site_info_file():
 
     # Convert to DataFrame 
     station_df = pd.DataFrame(station_list)
-    station_df.to_csv(f'{root_path}/{REGION}/points/tree_grass_crops_site_info.csv', index=False)
-
-
-def main():
-    filter_swc()
-    # After filtering, if there are points with no soil moisture data, we should create a site info file again
-    # create_site_info_file()
-
-if __name__ == "__main__":
-    main()
+    # Sort sites based on their station
+    station_df = station_df.sort_values(by = 'station')
+    station_df.to_csv(site_info_path, index=False)
+    print("Saved the updated site information in", site_info_path)
     
