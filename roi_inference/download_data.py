@@ -9,14 +9,18 @@ import geopandas as gpd
 from skimage.measure import block_reduce
 import argparse
 
+ee.Initialize()
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_date', required=True)
 parser.add_argument('--end_date', required=True)
 parser.add_argument('--roi_path', required=True)
+parser.add_argument('--save_folder', required = True)
 parser.add_argument('--region', required=True)
-args = parser.parse_args()
 
-ee.Initialize()
+args = parser.parse_args()
+save_folder = args.save_folder
+
 def get_coordinates_from_tif(tif_path):
     """
     Extract coordinates from a GeoTIFF file.
@@ -229,12 +233,12 @@ def get_data_from_ee(polygon_grid, start_date, end_date, region):
     Returns:
         ee.ImageCollection: The image collection for the specified region and date range.
     """
-    S1_dir = f'roi_inference/regions_data_results/{region}/data/s1_images'
-    DEM_dir = f'roi_inference/regions_data_results/{region}/data/dem_images'
-    SoilGrid_dir = f'roi_inference/regions_data_results/{region}/data/soilgrid_images'
-    NDVI_dir = f'roi_inference/regions_data_results/{region}/data/ndvi_images'
-    weather_dir = f'roi_inference/regions_data_results/{region}/data/weather_images'
-    landcover_dir = f'roi_inference/regions_data_results/{region}/data/land_cover'
+    S1_dir = f'{save_folder}/{region}/data/s1_images'
+    DEM_dir = f'{save_folder}/{region}/data/dem_images'
+    SoilGrid_dir = f'{save_folder}/{region}/data/soilgrid_images'
+    NDVI_dir = f'{save_folder}/{region}/data/ndvi_images'
+    weather_dir = f'{save_folder}/{region}/data/weather_images'
+    landcover_dir = f'{save_folder}/{region}/data/land_cover'
 
     os.makedirs(S1_dir, exist_ok=True)
     os.makedirs(DEM_dir, exist_ok=True)

@@ -30,49 +30,6 @@ def get_polygon_coords_from_gpkg(gpkg_path, layer=0):
     
     return polygon_coords
 
-def merge_filtered_sm_csv(sm_csv_folder, output_path, network):
-    """
-    Merge all filtered soil moisture CSV files in the specified folder into a single CSV file.
-    The merged file will contain unique rows based on the 'sm' column.
-    
-    Input:
-    - sm_csv_folder: Folder containing individual CSV files of soil moisture data.
-    - output_path: Path to save the merged CSV file.
-    - network: Name of the dataset.
-    """
-    # Load all CSV files of all sites the region (network)
-    files = os.listdir(sm_csv_folder)
-
-    # Initialize list to store DataFrames
-    df_list = []
-
-    # Traverse through each file in the directory
-    for file in files:
-        station = file.split('.')[0]
-
-        # Read CSV
-        df = pd.read_csv(os.path.join(sm_csv_folder, file))
-        # Check if the first column is unnamed or empty, and drop it if necessary
-        if df.columns[0] in [None, '', 'Unnamed: 0']:
-            df = df.iloc[:, 1:] # drop the first column
-
-        # Drop rows with NaN values
-        df = df.dropna()
-
-        # Insert 'network' and 'station' columns at the beginning
-        df.insert(0, 'network', network)
-        df.insert(1, 'station', station)
-        # print(len(df))
-        df_list.append(df)
-
-        merged_df = pd.concat(df_list, ignore_index= True)
-
-        merged_df.insert(0, 's_index', range(1, len(merged_df)+1))
-
-        # Save to a single csv file
-        merged_df.to_csv(output_path, index=False)
-        print(f"Saved merged soil moisture data in {output_path} with {len(merged_df)} samples")
-
 def run_pipeline_global_1km(region, root_path, grid_path, landcover_path, tiff_folder, start_date='2021-01-01', end_date='2022-12-31'):
     """
     Run the pipeline to collect soil moisture data at 1km resolution globally.
@@ -83,7 +40,7 @@ def run_pipeline_global_1km(region, root_path, grid_path, landcover_path, tiff_f
     - output_path: Path to save the merged CSV file.
     - network: Name of the dataset (default is "VN").
     """
-    print("*****Starting 100m soil moisture collection process...")
+    print("*****Starting 100m soil moisture collection process...*****")
 
     # Get coordinates of the polygon that covers the region from the grid file (gpkg)
     print("*****Reading polygon coordinates from grid...")
@@ -109,7 +66,7 @@ def run_pipeline_global_1km(region, root_path, grid_path, landcover_path, tiff_f
         raise ValueError("Region must be either 'india' or 'china'")
     
      # Get Sentinel-1 dates for the region
-    print(f"*****Get Sentinel-1 dates for polygon of {region} from {start_date} to {end_date}")
+    print(f"*****Get Sentinel-1 dates for polygon of {region} from {start_date} to {end_date}*****")
     s1_dates_output_path = f'{root_path}/{region}/{region}_s1_metadata_temp.csv'
     get_s1_dates.get_s1_dates(polygon_coords, start_date, end_date, s1_dates_output_path)
 
@@ -130,7 +87,7 @@ def run_pipeline_global_1km(region, root_path, grid_path, landcover_path, tiff_f
     filter_sm.filter_sm(sm_csv_folder, s1_dates_output_path, site_info_path, network)
     print("Saved soil filtered moisture data by S1 dates for each point in CSV files in", sm_csv_folder)
 
-region = 'india' # or 'china'
+region = 'china' # or 'china'
 root_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global'
 # Create some fixed folder 
 os.makedirs(f"{root_path}/{region}/{region}_csv", exist_ok=True)

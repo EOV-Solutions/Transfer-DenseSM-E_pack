@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # region = 'china'  # or 'india'
 def extract_data_for_region(network, station_df_path, tiff_folder, s1_date_csv, site_info_path, output_folder):
     """Get pixels' values and information of points as save them as CSV files 
-    In this code, a point is called a station"""
+       In this code, a point is called a station"""
     
     # network = region.upper() + '_100m'  # Network name for the region
     s1_date = pd.read_csv(s1_date_csv)
@@ -86,9 +86,12 @@ def extract_data_for_region(network, station_df_path, tiff_folder, s1_date_csv, 
     # Create individual CSV files for each station
     create_data_csv_files(results_df, output_folder)
 
-# Create site info file for all points: network, station (id), latitude, longitude, start depth, end depth)
-# site info file will be used for downloading data in data_pre/Prepare_samples.ipynb
+
 def create_site_info(df, network, output_csv):
+    """
+    Create site info file for all points: network, station (id), latitude, longitude, start depth, end depth)
+    site info file will be used for downloading data in data_pre/prepare_samples.py
+    """
     # Select unique locations 
     site_df = df[['id', 'latitude', 'longitude']].drop_duplicates().sort_values(by='id')
 
@@ -105,9 +108,11 @@ def create_site_info(df, network, output_csv):
     site_df.to_csv(output_csv, index=False)
     print(f'Site info saved to {output_csv}')
 
-# Create individual CSV files for each station with soil moisture data
-# These file will be used for downloading data in data_pre/Prepare_samples.ipynb
 def create_data_csv_files(df, output_folder):
+    """
+    Create individual CSV files for each station with soil moisture data
+    These file will be used for downloading data in data_pre/prepare_samples.py
+    """
     df['time'] = pd.to_datetime(df['date'])
     df['DoY'] = df['time'].dt.dayofyear
     df['station'] = df['id']

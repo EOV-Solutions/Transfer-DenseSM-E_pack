@@ -9,32 +9,38 @@ import argparse
 ee.Initialize()
 
 # Function to call download_data.py
-def download_data(region, start_date, end_date):
+def download_data(region, start_date, end_date, save_folder):
     subprocess.run(["python", "roi_inference/download_data.py",
                     "--start_date", start_date,
                     "--end_date", end_date,
                     "--roi_path", f"roi_inference/regions_data_results/{region}/roi_inference.tif", 
+                    "--save_folder", save_folder,
                     "--region", region], check = True)
 
 # Function to call extract_data.py
-def extract_data(region):
+def extract_data(region, data_folder):
     subprocess.run(["python", "roi_inference/extract_data.py",
-                    "--region", region], check = True)
+                    "--region", region,
+                    "--data_folder", data_folder], check = True)
 
 # Function to call merge_and_process.py
-def process_data(region):
+def process_data(region, data_folder):
     subprocess.run(["python", "roi_inference/merge_and_process.py",
-                    "--region", region], check = True)
+                    "--region", region,
+                    "--data_folder", data_folder], check = True)
 
 # Function to call inference_emsemble_roi.py
-def run_inference(region):
+def run_inference(region, data_folder, model_folder):
     subprocess.run(["python", "inference_emsemble_roi.py",
-                    "--region", region,], check = True)
+                    "--region", region,
+                    '--data_folder', data_folder,
+                    '--model_folder', model_folder], check = True)
 
 # Function to call prediction_visualize.py
-def visualize(region):
+def visualize(region, data_folder):
     subprocess.run(["python", "roi_inference/prediction_visualize.py",
-                    "--region", region], check = True)
+                    "--region", region,
+                    "--data_folder", data_folder], check = True)
 
 if __name__ == "__main__":
 
@@ -54,8 +60,11 @@ if __name__ == "__main__":
     
 
     region = args.region
-    folder = f'roi_inference/regions_data_results/{region}'
-    os.makedirs(folder, exist_ok=True)
+    data_folder = '/mnt/data2tb/Transfer-DenseSM-E_pack/roi_inference/regions_data_results'
+    region_folder = f'{data_folder}/{region}'
+    model_folder = 'trained_models/ft12_models/fusion_balanced/a70_bauto_r1'
+
+    os.makedirs(region_folder, exist_ok=True)
     start_date = args.start_date
     end_date = args.end_date
     
@@ -109,23 +118,23 @@ if __name__ == "__main__":
         # Tạo ảnh mosaic
         s1_mosaic = s1_collection.mosaic()
         # Save the mosaic to a GeoTIFF file, we use it as a reference to download the data afterward
-        download_image(s1_mosaic, roi_geometry, folder, f'roi_inference', 100)
+        download_image(s1_mosaic, roi_geometry, region_folder, f'roi_inference', 100)
     
     else: 
         print('Already downloaded roi_inference.tif')
     
     # Run the pipeline steps based on the provided flags
     if args.download:
-        download_data(region, start_date, end_date)
+        download_data(region, start_date, end_date, data_folder)
 
     if args.extract:
-        extract_data(region)
+        extract_data(region, data_folder)
 
     if args.process:
-        process_data(region)
+        process_data(region, data_folder)
 
     if args.inference:
-        run_inference(region)
+        run_inference(region, data_folder, model_folder)
     
     if args.visualize:
-        visualize(region)
+        visualize(region, data_folder)

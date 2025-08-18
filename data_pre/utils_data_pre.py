@@ -505,7 +505,7 @@ def samples_4_grid_v1(geo, START_DATE, END_DATE, START_DATE_NDVI, END_DATE_NDVI,
 
     # Convert samples to DataFrame
     samples_df = pd.DataFrame(samples)
-    samples_df.to_csv('samples.csv', index=False)
+    # samples_df.to_csv('samples.csv', index=False)
     samples_df.dropna(inplace=True)
     df_S1 = df_S1.loc[samples_df.index]
     

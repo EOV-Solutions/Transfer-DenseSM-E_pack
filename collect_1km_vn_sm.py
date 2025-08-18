@@ -74,48 +74,6 @@ def create_90k_grid_from_10k(grid_path, points_csv_path, output_path):
     selected_grid.to_file(output_path, driver="GPKG")
     print(f"Saved 90k grid in {output_path}")
 
-def merge_filtered_sm_csv(sm_csv_folder, output_path, network = "VN"):
-    """
-    Merge all filtered soil moisture CSV files in the specified folder into a single CSV file.
-    The merged file will contain unique rows based on the 'sm' column.
-    
-    Input:
-    - sm_csv_folder: Folder containing individual CSV files of soil moisture data.
-    - output_path: Path to save the merged CSV file.
-    - network: Name of the dataset (default is "VN").
-    """
-    # Load all CSV files of all sites the region (network)
-    files = os.listdir(sm_csv_folder)
-
-    # Initialize list to store DataFrames
-    df_list = []
-
-    # Traverse through each file in the directory
-    for file in files:
-        station = file.split('.')[0]
-
-        # Read CSV
-        df = pd.read_csv(os.path.join(sm_csv_folder, file))
-        # Check if the first column is unnamed or empty, and drop it if necessary
-        if df.columns[0] in [None, '', 'Unnamed: 0']:
-            df = df.iloc[:, 1:] # drop the first column
-
-        # Drop rows with NaN values
-        df = df.dropna()
-
-        # Insert 'network' and 'station' columns at the beginning
-        df.insert(0, 'network', network)
-        df.insert(1, 'station', station)
-        # print(len(df))
-        df_list.append(df)
-
-        merged_df = pd.concat(df_list, ignore_index= True)
-
-        merged_df.insert(0, 's_index', range(1, len(merged_df)+1))
-
-        # Save to a single csv file
-        merged_df.to_csv(output_path, index=False)
-        print(f"Saved merged soil moisture data in {output_path} with {len(merged_df)} samples")
 
 def run_pipeline_vn(root_path, grid_path_90k, points_csv_path, start_date, end_date ,tif_folder, network = 'VN'):
     """
@@ -174,18 +132,19 @@ network = "VN" # Network (name for the data)
 start_date = "2021-01-01"
 end_date = "2021-02-25"
 
-# Do not need to run this step again if the 90k grid already exists
-if not os.path.exists(grid_path_90k):
-    print("*****Merge 10k grid to obtain 90k grid*****")
-    # There would be some warning, it's okay, dont need to be fixed
-    create_90k_grid_from_10k(grid_path_10k, points_csv_path, grid_path_90k)
-
-run_pipeline_vn(
-    root_path=root_path,
-    grid_path_90k=grid_path_90k,
-    points_csv_path=points_csv_path,
-    start_date=start_date,
-    end_date=end_date,
-    tif_folder = tif_folder,
-    network = network
-)
+if __name__ == "__main__":
+    # Do not need to run this step again if the 90k grid already exists
+    if not os.path.exists(grid_path_90k):
+        print("*****Merge 10k grid to obtain 90k grid*****")
+        # There would be some warning, it's okay, dont need to be fixed
+        create_90k_grid_from_10k(grid_path_10k, points_csv_path, grid_path_90k)
+        
+    run_pipeline_vn(
+        root_path=root_path,
+        grid_path_90k=grid_path_90k,
+        points_csv_path=points_csv_path,
+        start_date=start_date,
+        end_date=end_date,
+        tif_folder = tif_folder,
+        network = network
+    )

@@ -32,49 +32,6 @@ def get_polygon_coords_from_gpkg(gpkg_path, layer=0):
     
     return polygon_coords
 
-def merge_filtered_sm_csv(sm_csv_folder, output_path, network):
-    """
-    Merge all filtered soil moisture CSV files in the specified folder into a single CSV file.
-    The merged file will contain unique rows based on the 'sm' column.
-    
-    Input:
-    - sm_csv_folder: Folder containing individual CSV files of soil moisture data.
-    - output_path: Path to save the merged CSV file.
-    - network: Name of the dataset.
-    """
-    # Load all CSV files of all sites the region (network)
-    files = os.listdir(sm_csv_folder)
-
-    # Initialize list to store DataFrames
-    df_list = []
-
-    # Traverse through each file in the directory
-    for file in files:
-        station = file.split('.')[0]
-
-        # Read CSV
-        df = pd.read_csv(os.path.join(sm_csv_folder, file))
-        # Check if the first column is unnamed or empty, and drop it if necessary
-        if df.columns[0] in [None, '', 'Unnamed: 0']:
-            df = df.iloc[:, 1:] # drop the first column
-
-        # Drop rows with NaN values
-        df = df.dropna()
-
-        # Insert 'network' and 'station' columns at the beginning
-        df.insert(0, 'network', network)
-        df.insert(1, 'station', station)
-        # print(len(df))
-        df_list.append(df)
-
-        merged_df = pd.concat(df_list, ignore_index= True)
-
-        merged_df.insert(0, 's_index', range(1, len(merged_df)+1))
-
-        # Save to a single csv file
-        merged_df.to_csv(output_path, index=False)
-        print(f"Saved merged soil moisture data in {output_path} with {len(merged_df)} samples")
-
 def run_pipeline_100m(region, root_path, grid_path, landcover_path, tif_folder, start_date='2021-01-01', end_date='2022-12-31'):
     """
     Collect soil moisture data at 100m resolution from Planet 
@@ -162,6 +119,8 @@ grid_path = f'{root_path}/{region}/grid/{region}_grid.gpkg'
 tif_folder = f'{root_path}/{region}/{region}_tif'
 start_date = '2021-01-01'
 end_date = '2022-12-31'
-run_pipeline_100m(region, root_path, grid_path, landcover_path, tif_folder, start_date, end_date)
+
+if __name__ == "__main__":
+    run_pipeline_100m(region, root_path, grid_path, landcover_path, tif_folder, start_date, end_date)
 
 

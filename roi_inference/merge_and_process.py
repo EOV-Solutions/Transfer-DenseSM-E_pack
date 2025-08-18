@@ -9,17 +9,18 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--region', required=True)
+parser.add_argument('--data_folder', required = True)
 args = parser.parse_args()
 
 region = args.region
+data_folder = args.data_folder
 
-root_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/roi_inference/regions_data_results'
 os.makedirs(f'roi_inference/regions_data_results/{region}/prediction', exist_ok = True)
-df_NDVI = pd.read_csv(f'{root_path}/{region}/csv_output/ndvi_values.csv')
-df_T = pd.read_csv(f'{root_path}/{region}/csv_output/T_values.csv')
-df_P = pd.read_csv(f'{root_path}/{region}/csv_output/P_values.csv')
+df_NDVI = pd.read_csv(f'{data_folder}/{region}/csv_output/ndvi_values.csv')
+df_T = pd.read_csv(f'{data_folder}/{region}/csv_output/T_values.csv')
+df_P = pd.read_csv(f'{data_folder}/{region}/csv_output/P_values.csv')
 # df_Aux = pd.read_csv(f'{root_path}/{region}/csv_output/soil_terrain_data.csv')
-df_Aux = pd.read_csv(f'{root_path}/{region}/csv_output/extract_dem_soil_from_tif2.csv')
+df_Aux = pd.read_csv(f'{data_folder}/{region}/csv_output/extract_dem_soil_from_tif2.csv')
 
 date_cols = df_NDVI.keys()[2:]
 date_times_NDVI = pd.to_datetime(date_cols)
@@ -32,10 +33,10 @@ for s1_file in os.listdir(s1_folder):
         date = s1_file.split('.')[0].split('_')[-1]
         target_dates.append(date)
 
-first_image_path = f'{root_path}/{region}/data/s1_images/S1_{target_dates[0]}.tif'
+first_image_path = f'{data_folder}/{region}/data/s1_images/S1_{target_dates[0]}.tif'
 coordinates = get_coordinates(first_image_path)
 for target_date in target_dates:
-    tif_path = f'{root_path}/{region}/data/s1_images/S1_{target_date}.tif'
+    tif_path = f'{data_folder}/{region}/data/s1_images/S1_{target_date}.tif'
     # coordinates = get_coordinates(tif_path)
     band_values = get_band_values(tif_path)  # shape: (3, num_pixels)
 
@@ -51,7 +52,7 @@ for target_date in target_dates:
     })
     print('df_S1.head: ')
     print(df_S1.head())
-    df_S1.to_csv(f'{root_path}/{region}/csv_output/s1/S1_{target_date}.csv', index=False)
+    df_S1.to_csv(f'{data_folder}/{region}/csv_output/s1/S1_{target_date}.csv', index=False)
 
     DoY = datetime.datetime.strptime(target_date, "%Y-%m-%d").timetuple().tm_yday 
     print('DoY: ', DoY)
@@ -136,4 +137,4 @@ for target_date in target_dates:
 
     # merged.dropna(subset = ['5'], inplace = True)
     # merged = merged.ffill() #uncomment this line if you want to fill NaN values with the previous value in the column,not recommended 
-    merged.to_csv(f'{root_path}/{region}/csv_output/combination/{target_date}_tif.csv', index=False)
+    merged.to_csv(f'{data_folder}/{region}/csv_output/combination/{target_date}_tif.csv', index=False)

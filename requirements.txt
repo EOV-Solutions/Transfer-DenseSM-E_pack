@@ -1,7 +1,10 @@
 python 3.11
 conda create -n sm python=3.11
 conda activate sm
-conda install -c conda-forge geopandas fiona gdal pyogrio shapely rasterio
+conda install -c conda-forge fiona pyogrio geopandas gdal shapely rasterio
 pip install earthengine-api
 pip install geemap
-pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121
+pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+conda install -c conda-forge opencv
+conda install -c conda-forge "numpy<2"
+

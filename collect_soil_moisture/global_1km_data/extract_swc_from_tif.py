@@ -73,7 +73,7 @@ def extract_and_create_files(points_csv_path, tiff_folder, site_info_path, sm_cs
                     'sm': sm_25
                 })
 
-        print(f"Processed: {image}")
+        # print(f"Processed: {image}")
 
     # Convert results to DataFrame 
     results_df = pd.DataFrame(results)

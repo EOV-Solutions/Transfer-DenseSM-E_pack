@@ -1,0 +1,55 @@
+CHINA_100m:
+  home: /mnt/data2tb/Transfer-DenseSM-E_pack/training_data/100m/china
+  start_date: 2021-01-01
+  end_date: 2022-12-31
+  start_date_ndvi: 2019-12-26
+  end_date_ndvi: 2023-01-08
+  sites_file: china_site_info.csv
+  sm_folder: china_csv
+  samples_folder: noname
+  merged_file: china_100m_merged.csv
+
+INDIA_100m:
+  home: /mnt/data2tb/Transfer-DenseSM-E_pack/training_data/100m/india
+  start_date: 2021-01-01
+  end_date: 2022-12-31
+  start_date_ndvi: 2019-12-26
+  end_date_ndvi: 2023-01-08
+  sites_file: india_site_info.csv
+  sm_folder: india_csv
+  samples_folder: noname
+  merged_file: india_100m_merged.csv
+
+INDIA_1km:
+  home: /mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global/india
+  start_date: 2021-01-01
+  end_date: 2022-12-31
+  start_date_ndvi: 2019-12-26
+  end_date_ndvi: 2023-01-08
+  sites_file: india_site_info.csv
+  sm_folder: india_csv
+  samples_folder: noname
+  merged_file: india_1km_merged.csv
+
+CHINA_1km:
+  home: /mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_global/china
+  start_date: 2021-01-01
+  end_date: 2022-12-31
+  start_date_ndvi: 2019-12-26
+  end_date_ndvi: 2023-01-08
+  sites_file: china_site_info.csv
+  sm_folder: china_csv
+  samples_folder: noname
+  merged_file: china_1km_merged
+
+VN:
+  home: /mnt/data2tb/Transfer-DenseSM-E_pack/training_data/1km_vn
+  start_date: 2021-01-01
+  end_date: 2022-12-31
+  start_date_ndvi: 2019-12-26
+  end_date_ndvi: 2023-01-08
+  sites_file: site_info.csv
+  sm_folder: vn_sm_csv
+  samples_folder: noname
+  merged_file: vn_1km_merged
+
