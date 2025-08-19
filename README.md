@@ -1,5 +1,4 @@
-# Transfer-DenseSM-E
-# Soil Moisture Estimation Project
+# Transfer-DenseSM-E -- Soil Moisture Estimation Project
 
 ## Giới Thiệu 
 Dự án này xây dựng pipeline xử lý, huấn luyện và suy luận (inference) dữ liệu **độ ẩm đất (Soil Moisture - SM) độ phân giải 100m**. Sử dụng ground truth từ nhiều nguồn Planet Variable (100m) và NSDIC (1km). Đầu vào là các nguồn dữ liệu viễn thám bao gồm: Sentinel-1, MODIS-NDVI, Temperatur, Precipiation, SoilGrids, DEM.
@@ -55,14 +54,41 @@ python roi_inference/run_pipeline.py     --region ngocnhat2     --start_date 202
 4. Lọc theo ngày có Sentinel-1.  
 5. Tạo file `.csv` chứa thông tin phục vụ huấn luyện. 
 
+`collect_100m_sm.py`: Xử lý sm 100m cho 'china' hoặc 'india'
+`collect_1km_global_sm.py`: Xử lý sm 1km cho 'china' hoặc 'india'
+`collect_1km_vn_sm.py`: Xử lý sm 1km cho Việt Nam
 
-## Part II: multi-scale domain adpation method (MSDA)
+Kết quả:
+- **Site information file**: chứa thông tin tất cả điểm trong vùng  
+- **CSV folder**: mỗi file chứa thông tin độ ẩm cho từng điểm  
 
-The pretrained 9km models were in DenseSM_9km.zip, while the samples for CONUS is in samples.zip https://doi.org/10.5281/zenodo.13336185
+---
 
-The initial version of finetune (Zhu et al., 2024) was inlcuded in MSDA.
+## 📊 Chuẩn bị dữ liệu huấn luyện
+Chạy file `data_pre/prepare_samples.py` để:
+- Đọc danh sách site và SM values.  
+- Ghép thêm dữ liệu đầu vào NDVI, LST, DEM, Precipitation... cùng với các giá trị sm tương ứng 
+- Xuất file dữ liệu trainng cho model.  
 
-Use example.ipynb to run the MSDA.
+Chạy file `merge_training_datasets.py` để kết hợp các loại dữ liệu với nhau thành 1 file tổng hợp (fusion) lưu trong thư mục **training_data\fusion**.
+
+---
+
+## 🧠 Huấn luyện mô hình
+Mô hình **DenseSM** được dùng để huấn luyện với dữ liệu fusion.  
+
+Yêu cầu đầu vào:
+- File `.csv` trong `training_data/fusion`, tùy vào cách kết hợp các loại dữ liệu sẽ cho ra các file tương ứng.   
+- Pretrained models trong `pretrained_models/DenseSM_9km`  
+
+Huấn luyện nhiều vòng lặp:
+```python
+for r in range(3):
+    # train 25 models 3 lần
+```
+Kết quả lưu trong `trained_models/ft12_model/`.
+
+---
 
 
 ## Reference
