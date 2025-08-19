@@ -4,57 +4,68 @@ import rasterio
 import os
 import argparse
 import shutil
-import datetime
+import datetime as dt
+from bisect import bisect_left
 from pathlib import Path
 
 def create_8_days_sm_images(src_folder, dst_folder):
     """
-    Lọc và copy ảnh TIFF cách nhau 8 ngày, bắt đầu từ YYYY-01-01 cho từng năm.
-    Nếu không có ngày đúng thì lấy ngày gần nhất.
-    Luôn tạo đủ 46 ngày trong năm.
-
-    Args:
-        src_folder (str): thư mục gốc chứa TIFF
-        dst_folder (str): thư mục kết quả
+    Tạo ảnh cách nhau 8 ngày, neo theo 01-01 mỗi năm nhưng CHỈ trong
+    khoảng [min_date, max_date] của dữ liệu gốc. Nếu thiếu ngày đúng
+    thì lấy ngày gần nhất (nếu khoảng cách bằng nhau -> ưu tiên ngày SAU).
     """
-    src_folder = Path(src_folder)
-    dst_folder = Path(dst_folder)
-    dst_folder.mkdir(parents=True, exist_ok=True)
+    src = Path(src_folder)
+    dst = Path(dst_folder)
+    dst.mkdir(parents=True, exist_ok=True)
 
-    # Đọc danh sách file gốc và chuyển thành dict {date: filepath}
+    # Đọc tên file dạng YYYY-MM-DD.tif -> map {date: filepath}
     files = {}
-    for f in src_folder.glob("*.tif"):
+    for f in src.glob("*.tif"):
         try:
-            d = datetime.date.fromisoformat(f.stem)  # stem = tên file không có .tif
+            d = dt.date.fromisoformat(f.stem)
             files[d] = f
-        except Exception:
-            print(f"Ignore if the file is not valid: {f.name}")
+        except ValueError:
+            print(f"Ignore the non valid file: {f.name}")
 
     if not files:
-        print(f"There are no tif image in the {src_folder}.")
+        print(f"Thera are no .tif files in {src}")
         return
 
-    available_dates = sorted(files.keys())
+    available = sorted(files.keys())
+    min_d, max_d = available[0], available[-1]
 
-    # Nhóm theo năm
-    years = sorted(set(d.year for d in available_dates))
+    # Sinh các mốc 8 ngày (neo 01-01 mỗi năm) rồi CHỈ giữ mốc nằm trong [min_d, max_d]
+    targets = []
+    for y in range(min_d.year, max_d.year + 1):
+        start = dt.date(y, 1, 1)
+        for i in range(46):
+            t = start + dt.timedelta(days=8 * i)
+            if min_d <= t <= max_d:
+                targets.append(t)
 
-    for year in years:
-        print(f"Processing {year}...")
-        # target dates: 46 ngày cách nhau 8 ngày
-        start_date = datetime.date(year, 1, 1)
-        target_dates = [start_date + datetime.timedelta(days=8 * i) for i in range(46)]
+    # Tìm ngày gần nhất bằng bisect (nếu hòa -> ưu tiên ngày SAU)
+    def closest_date(x):
+        i = bisect_left(available, x)
+        left = available[i-1] if i > 0 else None
+        right = available[i] if i < len(available) else None
+        if left and right:
+            dl = (x - left).days
+            dr = (right - x).days
+            if dr < dl:
+                return right
+            elif dl < dr:
+                return left
+            else:
+                return right  # hòa thì chọn ngày sau (>= target)
+        return right or left
 
-        for target in target_dates:
-            # tìm ngày gần nhất trong tất cả available_dates
-            closest = min(available_dates, key=lambda d: abs(d - target))
-            src_file = files[closest]
+    # Copy và đặt tên theo ngày target
+    for t in targets:
+        c = closest_date(t)
+        shutil.copy(files[c], dst / f"{t.isoformat()}.tif")
+        print(f"{t} <- copy from {c}")
 
-            dst_file = dst_folder / f"{target.isoformat()}.tif"
-            shutil.copy(src_file, dst_file)
-            print(f"{target} <- copy from {closest}")
-
-    print(f"Saved output images in {dst_folder}")
+    print(f"Save {len(targets)} image in {dst}")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--region', required=True)
