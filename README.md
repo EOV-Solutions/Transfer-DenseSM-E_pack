@@ -90,6 +90,5 @@ Kết quả lưu trong `trained_models/ft12_model/`.
 
 ---
 
-
 ## Reference
 Liujun Zhu, Junjie Dai, Yi Liu, Shanshui Yuan & Jeffrey P. Walker (2024) A cross-resolution transfer learning approach for soil moisture retrieval with limited training samples, Remote Sensing of Environment
