@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
         """IF YOU WANT TO GET GEOMETRY FROM YOUR SHAPEFILE"""
         # Read shapefile
-        gdf = gpd.read_file("roi_inference/regions_data_results/ngocnhat3/gialai_33_polygon/gialia_33_polygon.shp")  # hoặc .geojson
+        gdf = gpd.read_file("roi_inference/regions_data_results/ngocnhat3_2/gialai_33_polygon/gialia_33_polygon.shp")  # hoặc .geojson
 
         # Select the first shape (it is the desired ROI)
         selected_shape = gdf.iloc[0].geometry

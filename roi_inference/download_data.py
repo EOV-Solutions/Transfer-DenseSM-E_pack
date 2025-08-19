@@ -6,7 +6,6 @@ import rasterio
 from rasterio.transform import Affine
 import requests  
 import geopandas as gpd
-from skimage.measure import block_reduce
 import argparse
 
 ee.Initialize()
