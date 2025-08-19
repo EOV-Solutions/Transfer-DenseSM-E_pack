@@ -1,23 +1,60 @@
 # Transfer-DenseSM-E
-This repository is a simple implementation of the Transfer-DenseSM-E
+# Soil Moisture Estimation Project
 
-Setup python envs
-use conda env create --name geeTorch --file environment.yml
+## Giới Thiệu 
+Dự án này xây dựng pipeline xử lý, huấn luyện và suy luận (inference) dữ liệu **độ ẩm đất (Soil Moisture - SM) độ phân giải 100m**. Sử dụng ground truth từ nhiều nguồn Planet Variable (100m) và NSDIC (1km). Đầu vào là các nguồn dữ liệu viễn thám bao gồm: Sentinel-1, MODIS-NDVI, Temperatur, Precipiation, SoilGrids, DEM.
 
-## Part I: Data preparation
+Quy trình bao gồm:
+- Tải dữ liệu soil moisture từ các nguồn Planet(Hiện tại không cho download từ Sentinelhub EO Browser) và NSIDC (https://nsidc.org/data/spl4smgp/versions/7)
+- Áp dụng grid và dữ liệu landcover để lựa chọn các điểm lấy dữ liệu. 
+- Trích xuất và xử lý dữ liệu soil moisture ở các độ phân giải (100m, 1km)
+- Tải các dữ liệu đầu vào khác (Sentinel-1, NDVI, Soil Texture,...), kết hợp với dữ liệu soil moisture.
+- Huấn luyện mô hình **DensSM**.
+- Thực hiện inference cho các vùng quan tâm và trực quan hóa kết quả. 
 
-The preprocessing steps used in the paper is for 9_km and 50 m grids based on Google Earth Engine, while these posted here are designed for the grid cells. The main reason of a simplified version includes: 
-- EASE 2.0 is not supported by GEE and thus images were first downloaded with a size of 13x13 km, allowing a reprojection to cover the corresponding 9km grid cell 
-- We export images to google drive first and download it to local in an app way, being too complex to be posted here.
-- The prepared samples can be direclty used in models, being more straightfoward.
-However, we are happy to share the codes for images
+## ⚙️ Chuẩn bị môi trường
+Chạy script để tạo môi trường 'conda':
+```bash
+bash setup_env.sh
+conda activate sm
+```
+---
 
-### Remote sensing data and Reanalysis weather data from Google Earth Engine (GEE)
-#### Setup
-An google developer account is required to access the GEE
+## 📂 Cấu trúc dữ liệu
+- **training_data/**
+  - `100m/` : dữ liệu độ ẩm đất 100m  
+  - `1km_vn/` : dữ liệu 1km tại Việt Nam  
+  - `1km_global/` : dữ liệu 1km toàn cầu  
+  - `fusion/` : dữ liệu đã ghép phục vụ huấn luyện  
+- **pretrained_models/** : chứa các mô hình DenseSM có sẵn  
+- **trained_models/** : lưu các mô hình sau khi fine-tune  
+- **roi_inference/** : code và dữ liệu cho inference theo vùng 
 
-#### prepare the input variables using GEE
-Use Prepare_samples.ipynb to extract all the input variables at either 9km or 50m listed in Table 2. 
+## 🔮 Inference cho vùng quan tâm
+File chính: roi_inference/run_pipeline.py
+```bash
+python roi_inference/run_pipeline.py     --region <region_name>     --start_date 2024-12-25     --end_date 2025-02-05     --download --extract --process --inference --visualize
+```
+Các bước trong pipeline:
+- `download` : tải dữ liệu  
+- `extract` : trích xuất thành CSV  
+- `process` : tiền xử lý, ghép NDVI, DEM, v.v.  
+- `inference` : chạy DenseSM ensemble  
+- `visualize` : xuất kết quả thành ảnh `.tif`  
+
+Có thể chạy riêng từng bước, ví dụ khi đã chạy `download` và `extract` thì chỉ cần chạy 3 bước còn lại:
+```bash
+python roi_inference/run_pipeline.py     --region ngocnhat2     --start_date 2024-12-25     --end_date 2025-02-05     --process --inference --visualize
+```
+
+## 📥 Tải và xử lý dữ liệu Soil Moisture
+### Quy trình chung:
+1. Chia vùng thành **grid** (1km, 2km, …).  
+2. Kết hợp với **land cover** để lọc và chọn điểm.  
+3. Trích xuất **soil moisture** từ ảnh `.tif` (Planet / NSIDC).  
+4. Lọc theo ngày có Sentinel-1.  
+5. Tạo file `.csv` chứa thông tin phục vụ huấn luyện. 
+
 
 ## Part II: multi-scale domain adpation method (MSDA)
 
