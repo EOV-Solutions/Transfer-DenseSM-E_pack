@@ -4,7 +4,7 @@
 Dự án này xây dựng pipeline xử lý, huấn luyện và suy luận (inference) dữ liệu **độ ẩm đất (Soil Moisture - SM) độ phân giải 100m**. Sử dụng ground truth từ nhiều nguồn Planet Variable (100m) và NSDIC (1km). Đầu vào là các nguồn dữ liệu viễn thám bao gồm: Sentinel-1, MODIS-NDVI, Temperatur, Precipiation, SoilGrids, DEM.
 
 Quy trình bao gồm:
-- Tải dữ liệu soil moisture từ các nguồn Planet(Hiện tại không cho download từ Sentinelhub EO Browser) và NSIDC (https://nsidc.org/data/spl4smgp/versions/7)
+- Tải dữ liệu soil moisture từ các nguồn Planet(Hiện tại không cho download từ Sentinelhub EO Browser) và NSIDC (https://nsidc.org/data/nsidc-0779/versions/1)
 - Áp dụng grid và dữ liệu landcover để lựa chọn các điểm lấy dữ liệu. 
 - Trích xuất và xử lý dữ liệu soil moisture ở các độ phân giải (100m, 1km)
 - Tải các dữ liệu đầu vào khác (Sentinel-1, NDVI, Soil Texture,...), kết hợp với dữ liệu soil moisture.
