@@ -1,10 +1,18 @@
-python 3.11
-conda create -n sm python=3.11
-conda activate sm
-conda install -c conda-forge fiona pyogrio geopandas gdal shapely rasterio
-pip install earthengine-api
-pip install geemap
-pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu121
-conda install -c conda-forge opencv
-conda install -c conda-forge "numpy<2"
-
+fiona==1.10.1
+pyogrio==0.10.0
+gdal==3.10.1
+rasterio==1.4.3
+geopandas==1.0.1
+shapely==2.0.6
+earthengine-api==1.4.5
+geemap==0.35.0
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.6.1
+scipy==1.15.1
+matplotlib==3.10.0
+torch==2.1.0
+opencv-python==4.11.0.86
+Pillow==11.1.0
+tqdm==4.67.1
+requests==2.32.3
