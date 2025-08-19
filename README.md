@@ -75,6 +75,7 @@ Chạy file `merge_training_datasets.py` để kết hợp các loại dữ li�
 ---
 
 ## 🧠 Huấn luyện mô hình
+Chạy chương trình `train.py`, cần thay đổi đường dẫn đến file dữ liệu tổng hợp mong muốn train trong thư mục **training_data\fusion**
 Mô hình **DenseSM** được dùng để huấn luyện với dữ liệu fusion.  
 
 Yêu cầu đầu vào:
