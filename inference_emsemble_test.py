@@ -62,14 +62,14 @@ if __name__ == "__main__":
     models = [(1,8),(1,16),(1,32),(1,64),(1,128),(2,8),(2,16),(2,32),(2,64),(2,128),(3,8),(3,16),(3,32),(3,64),
     (3,128),(4,8),(4,16),(4,32),(4,64),(4,128),(5,8),(5,16),(5,32),(5,64),(5,128)]
     # Define the model variants to be used for inference, distinguish by (number of blocks, width)
-    input_csv = "100m_data/output_tb/tb_merged.csv"
+    input_csv = "training_data/100m/thaibinh/tb_merged_2.csv"
     output_csv = 'output/output_result.csv'
     records = []
     # Traverse through the model variants and run inference
     # For each model, load the input data, run inference and save the predictions
     # We apply ensemble by averaging the predictions of all models
     for bk, wd in models:
-        model_path = f"Demo/ft12_models/deletethis/a70_bauto_r0/m_{bk}_{wd}.pt"
+        model_path = f"/mnt/data2tb/Transfer-DenseSM-E_pack/trained_models/ft12_models/fusion_full/a70_bauto_r10/m_{bk}_{wd}.pt"
         # Load input data
         input_data = pd.read_csv(input_csv)
         input_data = np.asarray(input_data.loc[:, '0':'152']).astype(np.float32)

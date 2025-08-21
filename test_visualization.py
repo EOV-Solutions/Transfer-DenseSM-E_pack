@@ -153,7 +153,6 @@ def plot_metrics(prediction_path, gt_path, save_path = None):
 
     plt.axis('equal')
     plt.tight_layout()
-    plt.show()
 
     print(f"RMSE: {rmse:.4f}")
     print(f"Unbiased RMSE (ubRMSE): {ubrmse:.4f}")
@@ -168,8 +167,9 @@ def plot_metrics(prediction_path, gt_path, save_path = None):
         plt.show()
 
 prediction_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/output/output_result.csv' 
-gt_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/100m_data/output_tb/output_ndvi250_first/THAIBINH_101.csv'
+gt_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/training_data/100m/thaibinh/tb_merged.csv'
 smap_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/100m_data/output_tb/smap/130.csv'
 plot_path = '/mnt/data2tb/Transfer-DenseSM-E_pack/output/thaibinh_test_metrics.png'
+plot_metrics(prediction_path, gt_path, plot_path)
 
 
