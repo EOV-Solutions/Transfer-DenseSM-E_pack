@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import time
 import ee
-import utils_data_pre_s3 as utils_data_pre
+import utils_data_pre as utils_data_pre
 import yaml
 
 def merge_filtered_sm_csv(sm_csv_folder, output_path, network):

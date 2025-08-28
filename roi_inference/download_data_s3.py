@@ -72,6 +72,12 @@ def extract_dates_from_filename(filename):
         return f"{date_raw[:4]}-{date_raw[4:6]}-{date_raw[6:]}"
     return None
 
+def remove_zip_files(folder):
+    for fname in os.listdir(folder):
+        if fname.endswith('.zip'):
+            os.remove(os.path.join(folder, fname))
+            print(f"Removed zip file: {fname}")
+
 # Get Sentinel-1 data for the specified geometry and date range
 def get_S1(geometry, START_DATE, END_DATE, S1_DIR=''):
     datetime_range = f"{START_DATE}T00:00:00Z/{END_DATE}T23:59:59Z"
@@ -85,8 +91,22 @@ def get_S1(geometry, START_DATE, END_DATE, S1_DIR=''):
 
     """
     Thêm
-    Code for downloading Sentinel-1 data, stacking bands and save in S1_DIR
+    Code for downloading Sentinel-1 data
     """
+    # Tải về xong sẽ thu được thư mục tif và các file ảnh tif được extract ra từ các file zip => xóa file zip
+    remove_zip_files(S1_DIR)
+    # Các ảnh đang ở dạng đơn band => ghép các band lại thành ảnh đa band
+    # Xét các file cùng tên (không tính phần _vv, _vh, _angle và phần mở rộng .tif) => ghép lại thành ảnh 1 ảnh đa band
+    
+    tif_files = [f for f in os.listdir(S1_DIR) if f.endswith('.tif')]
+    base_names = set(re.sub(r'_(vv|vh|angle)\.tif$', '', f) for f in tif_files)
+    for base in base_names:
+        bands = []
+        for band in ['vv', 'vh', 'angle']:
+            band_file = os.path.join(S1_DIR, f"{base}_{band}.tif")
+            if os.path.exists(band_file):
+                bands.append(rasterio.open(band_file))
+
     # Rename tif files of S1 like format  S1_YYYY-MM-DD.tif
     for fname in os.listdir(S1_DIR):
         if fname.endswith('.tif'):

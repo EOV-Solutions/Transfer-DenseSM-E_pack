@@ -15,6 +15,7 @@ conda install -y -c conda-forge "numpy<2"
 # Cài các thư viện pip
 pip install earthengine-api
 pip install geemap
+pip install datashader
 
 # Cài PyTorch CUDA 12.1
 pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu121
