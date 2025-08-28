@@ -7,13 +7,15 @@ from rasterio.transform import Affine
 import requests  
 import geopandas as gpd
 import argparse
+import json
 
 ee.Initialize()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_date', required=True)
 parser.add_argument('--end_date', required=True)
-parser.add_argument('--roi_path', required=True)
+parser.add_argument('--roi_path', required=False)
+parser.add_argument('--roi_geometry', required = False)
 parser.add_argument('--save_folder', required = True)
 parser.add_argument('--region', required=True)
 
@@ -265,8 +267,18 @@ def get_data_from_ee(polygon_grid, start_date, end_date, region):
     download_landcover_image(polygon_grid, landcover_dir)
 
 
-# Determine the polygon of the region of interest, with the maximum allowed error is 20.
-ring_wgs = get_coordinates_from_tif(args.roi_path)
-polygon_grid=ee.Geometry.Polygon(ring_wgs, None, False)
+
+# Determine the polygon of the region of interest, 
+if isinstance(args.roi_geometry, str):
+    roi_geom = json.loads(args.roi_geometry)
+else:
+    roi_geom = args.roi_geometry
+# Tạo polygon_grid từ roi_geometry (giả sử kiểu GeoJSON: {'type': 'Polygon', 'coordinates': [...]})
+polygon_grid = ee.Geometry.Polygon(roi_geom['coordinates'][0], None, False)
 get_data_from_ee(polygon_grid, args.start_date, args.end_date, args.region)
 print("Data fetched successfully.")
+# Determine the polygon of the region of interest, with the maximum allowed error is 20.
+# ring_wgs = get_coordinates_from_tif(args.roi_path)
+# polygon_grid=ee.Geometry.Polygon(ring_wgs, None, False)
+# get_data_from_ee(polygon_grid, args.start_date, args.end_date, args.region)
+# print("Data fetched successfully.")

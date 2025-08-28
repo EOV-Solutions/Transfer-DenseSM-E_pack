@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import time
 import ee
-import utils_data_pre
+import utils_data_pre_s3 as utils_data_pre
 import yaml
 
 def merge_filtered_sm_csv(sm_csv_folder, output_path, network):
@@ -136,7 +136,7 @@ def prepare_samples_for_sites(sm_sites, dir_to_site_sm, dir_to_site_samples, gri
 
 
 # Network & Region
-NETWORK = "INDIA_1km"   # có thể lấy từ argparse để chạy CLI
+NETWORK = "VN"   # có thể lấy từ argparse để chạy CLI
 with open("data_pre/regions.yaml", "r") as f:
     REGIONS = yaml.safe_load(f)
 

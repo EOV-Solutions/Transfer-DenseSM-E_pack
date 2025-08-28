@@ -6,14 +6,20 @@ import ee
 import geemap
 from shapely.geometry import mapping
 import argparse
+import json
 ee.Initialize()
 
 # Function to call download_data.py
-def download_data(region, start_date, end_date, save_folder):
+def download_data(region, roi_geometry, start_date, end_date, save_folder):
+    # Nếu roi_geometry là shapely geometry:
+    # roi_geom_json = json.dumps(mapping(roi_geometry))
+    # Nếu roi_geometry là ee.Geometry:
+    roi_geom_json = json.dumps(roi_geometry.getInfo())
     subprocess.run(["python", "roi_inference/download_data.py",
                     "--start_date", start_date,
                     "--end_date", end_date,
-                    "--roi_path", f"roi_inference/regions_data_results/{region}/roi_inference.tif", 
+                    "--roi_path", f"roi_inference/regions_data_results/{region}/roi_inference.tif",
+                    "--roi_geometry", roi_geom_json,
                     "--save_folder", save_folder,
                     "--region", region], check = True)
 
@@ -60,7 +66,7 @@ if __name__ == "__main__":
     
 
     region = args.region
-    data_folder = '/mnt/data2tb/Transfer-DenseSM-E_pack/roi_inference/regions_data_results'
+    data_folder = 'roi_inference/regions_data_results'
     region_folder = f'{data_folder}/{region}'
     model_folder = 'trained_models/ft12_models/fusion_balanced/a70_bauto_r1'
 
@@ -75,7 +81,7 @@ if __name__ == "__main__":
 
         """IF YOU WANT TO GET GEOMETRY FROM YOUR SHAPEFILE"""
         # Read shapefile
-        gdf = gpd.read_file("roi_inference/regions_data_results/ngocnhat3_2/gialai_33_polygon/gialia_33_polygon.shp")  # hoặc .geojson
+        gdf = gpd.read_file("roi_inference/regions_data_results/ngocnhat5/travinh_2_2_res6km_polygon/travinh_2_2_res6km_polygon.shp")  # hoặc .geojson
 
         # Select the first shape (it is the desired ROI)
         selected_shape = gdf.iloc[0].geometry
@@ -102,30 +108,30 @@ if __name__ == "__main__":
         # roi_geometry = ee.Geometry.Rectangle([minx, miny, maxx, maxy])
 
         # Get Sentinel-1 data for the ROI, we will it to determine the geometry of the region
-        s1_collection = ee.ImageCollection("COPERNICUS/S1_GRD") \
-            .filterBounds(roi_geometry) \
-            .filterDate(START, END) \
-            .filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING')) \
-            .filter(ee.Filter.eq('instrumentMode', 'IW')) \
-            .select(['VV', 'VH', 'angle']) \
-            .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV')) \
-            .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH')) 
+    #     s1_collection = ee.ImageCollection("COPERNICUS/S1_GRD") \
+    #         .filterBounds(roi_geometry) \
+    #         .filterDate(START, END) \
+    #         .filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING')) \
+    #         .filter(ee.Filter.eq('instrumentMode', 'IW')) \
+    #         .select(['VV', 'VH', 'angle']) \
+    #         .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV')) \
+    #         .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH')) 
         
-        # Kiểm tra số ảnh
-        count = s1_collection.size().getInfo()
-        if count == 0:
-            raise Exception("=== No Sentinel-1 images found for this region and time.")
-        # Tạo ảnh mosaic
-        s1_mosaic = s1_collection.mosaic()
-        # Save the mosaic to a GeoTIFF file, we use it as a reference to download the data afterward
-        download_image(s1_mosaic, roi_geometry, region_folder, f'roi_inference', 100)
+    #     # Kiểm tra số ảnh
+    #     count = s1_collection.size().getInfo()
+    #     if count == 0:
+    #         raise Exception("=== No Sentinel-1 images found for this region and time.")
+    #     # Tạo ảnh mosaic
+    #     s1_mosaic = s1_collection.mosaic()
+    #     # Save the mosaic to a GeoTIFF file, we use it as a reference to download the data afterward
+    #     download_image(s1_mosaic, roi_geometry, region_folder, f'roi_inference', 100)
     
     else: 
         print('Already downloaded roi_inference.tif')
     
     # Run the pipeline steps based on the provided flags
     if args.download:
-        download_data(region, start_date, end_date, data_folder)
+        download_data(region, roi_geometry, start_date, end_date, data_folder)
 
     if args.extract:
         extract_data(region, data_folder)
