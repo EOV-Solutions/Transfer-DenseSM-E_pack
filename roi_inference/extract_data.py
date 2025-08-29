@@ -63,12 +63,21 @@ grid_size = 0.1
 point_geometry = utils_data.PointGeometry(4326, 6933)
 pobj = utils_data.grids_4_a_region(4326, grid_size)
 
-df_static = extract_terrain_soil_texture(
-    soil_tif = f"{data_folder}/{region}/data/soilgrid_images/SoilGrid_sand_clay_bdod.tif",
-    dem_tif = f"{data_folder}/{region}/data/dem_images/DEM_elevation_slope_aspect_10m.tif",
-    coordinates = coordinates,
-    pobj=pobj,
-    grid_size=grid_size, 
-    pg = point_geometry)
+try:
+    df_static = extract_terrain_soil_texture(
+        soil_tif = f"{data_folder}/{region}/data/soilgrid_images/SoilGrid_sand_clay_bdod.tif",
+        dem_tif = f"{data_folder}/{region}/data/dem_images/DEM_elevation_slope_aspect_30m.tif",
+        coordinates = coordinates,
+        pobj=pobj,
+        grid_size=grid_size, 
+        pg = point_geometry)
+except Exception as e:
+    df_static = extract_terrain_soil_texture(
+        soil_tif = f"{data_folder}/{region}/data/soilgrid_images/SoilGrid_sand_clay_bdod.tif",
+        dem_tif = f"{data_folder}/{region}/data/dem_images/DEM_elevation_slope_aspect_10m.tif",
+        coordinates = coordinates,
+        pobj=pobj,
+        grid_size=grid_size, 
+        pg = point_geometry)
 
 df_static.to_csv(f"{data_folder}/{region}/csv_output/extract_dem_soil_from_tif2.csv", index=False)

@@ -201,7 +201,7 @@ def download_SoilGrid_DEM_images(polygon_grid, soilgrid_dir, dem_dir):
     # DEM and terrain
     srtm = ee.Image('USGS/SRTMGL1_003')
     terrain = ee.Algorithms.Terrain(srtm).select(['elevation', 'slope', 'aspect']).toFloat()
-    dem_image_id = "DEM_elevation_slope_aspect_10m"
+    dem_image_id = "DEM_elevation_slope_aspect_30m"
 
     download_tif(soil_image, polygon_grid, soilgrid_dir, soil_image_id, 250)
     try: 

@@ -99,7 +99,7 @@ def run_pipeline_vn(root_path, grid_path_90k, points_csv_path, start_date, end_d
     # Define output directory for S1 dates fo each grid cell
     s1_dates_grid_dir = f"{root_path}/s1_dates_per_grid" # Folder containing csv files of s1 dates for each grid cell
     os.makedirs(s1_dates_grid_dir, exist_ok=True)
-    # get_s1_dates.get_grid_s1_dates_vn(grid_path_90k, s1_dates_grid_dir, start_date, end_date)
+    get_s1_dates.get_grid_s1_dates_vn(grid_path_90k, s1_dates_grid_dir, start_date, end_date)
     print("Saved S1 dates for grid cells in", s1_dates_grid_dir)
 
     print("*****Get Sentinel-1 dates for the points*****")
@@ -130,7 +130,7 @@ tif_folder = '/mnt/data2tb/nsidc_images' # Folder contains NSIDC tif images - ak
 network = "VN" # Network (name for the data)
 # Define time range to extract soil moisture data (must have downloaded NSIDC data in this time range)
 start_date = "2021-01-01"
-end_date = "2021-02-25"
+end_date = "2022-12-31"
 
 if __name__ == "__main__":
     # Do not need to run this step again if the 90k grid already exists
